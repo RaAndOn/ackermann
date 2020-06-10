@@ -1,0 +1,171 @@
+<?xml version="1.0"?>
+<robot name="roscontrol" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:property name="base_length" value="1.0" />
+  <xacro:property name="base_width" value="0.4" />
+  <xacro:property name="wheel_diam" value="0.2" />
+  <xacro:property name="pi" value="3.1415" />
+
+  <material name="blue">
+    <color rgba="0 0 0.8 1"/>
+  </material>
+
+  <material name="black">
+    <color rgba="0 0 0 1"/>
+  </material>
+
+  <material name="white">
+    <color rgba="1 1 1 1"/>
+  </material>
+
+  <xacro:macro name="default_inertial" params="mass">
+    <inertial>
+      <mass value="${mass}" />
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+    </inertial>
+  </xacro:macro>
+
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="${base_length} ${base_width} 0.08"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="${base_length} ${base_width} 0.08"/>
+      </geometry>
+    </collision>
+    <xacro:default_inertial mass="10"/>
+  </link>
+
+  <xacro:macro name="wheel" params="side location steer">
+    <link name="${location}_${side}_wheel">
+      <visual>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
+        <geometry>
+          <cylinder radius="${wheel_diam/2}" length="0.05"/>
+        </geometry>
+        <material name="black"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
+        <geometry>
+          <cylinder radius="${wheel_diam/2}" length="0.05"/>
+        </geometry>
+      </collision>
+      <xacro:default_inertial mass="1"/>
+    </link>
+
+    <joint name="${location}_${side}_wheel_velocity_joint" type="continuous">
+      <axis xyz="0 1 0" rpy="0 0 0" />
+      <parent link="${location}_${side}_linkage"/>
+      <child link="${location}_${side}_wheel"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <!-- This block provides the simulator (Gazebo) with information on a few additional
+    physical properties. See http://gazebosim.org/tutorials/?tut=ros_urdf for more-->
+    <gazebo reference="${location}_${side}_wheel">
+      <mu1 value="200.0"/>
+      <mu2 value="100.0"/>
+      <kp value="10000000.0" />
+      <kd value="1.0" />
+      <material>Gazebo/Grey</material>
+    </gazebo>
+
+    <!-- This block connects the wheel joint to an actuator (motor), which informs both
+    simulation and visualization of the robot -->
+    <transmission name="${location}_${side}_wheel_velocity_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <actuator name="${location}_${side}_wheel_velocity_motor">
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+      <joint name="${location}_${side}_wheel_velocity_joint">
+        <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+      </joint>
+    </transmission>
+
+    <xacro:if value="${steer}">
+      <transmission name="${location}_${side}_wheel_steer_trans">
+        <type>transmission_interface/SimpleTransmission</type>
+        <actuator name="${location}_${side}_wheel_steer_motor">
+          <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+        <joint name="${location}_${side}_steer_joint">
+          <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+        </joint>
+      </transmission>
+    </xacro:if>
+
+  </xacro:macro>
+
+  <xacro:macro name="linkage" params="location lon side lat steer">
+
+    <link name="${location}_${side}_linkage">
+      <visual>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
+        <geometry>
+          <cylinder radius=".05" length=".05"/>
+        </geometry>
+        <material name="white"/>
+      </visual>
+      <!-- <collision>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
+        <geometry>
+          <cylinder radius=".05" length=".05"/>
+        </geometry>
+      </collision> -->
+      <xacro:default_inertial mass="1"/>
+    </link>
+
+    <xacro:if value="${steer}">
+      <joint name="${location}_${side}_steer_joint" type="continuous">
+        <axis xyz="0 0 1" rpy="0 0 0" />
+        <parent link="base_link"/>
+        <child link="${location}_${side}_linkage"/>
+        <origin xyz="${base_length*lon/3} ${base_width*lat/2} 0" rpy="0 0 0"/>
+      </joint>
+    </xacro:if>
+
+    <xacro:unless value="${steer}">
+      <joint name="${location}_${side}_steer_joint" type="fixed">
+        <axis xyz="0 0 1" rpy="0 0 0" />
+        <parent link="base_link"/>
+        <child link="${location}_${side}_linkage"/>
+        <origin xyz="${base_length*lon/3} ${base_width*lat/2} 0" rpy="0 0 0"/>
+      </joint>
+    </xacro:unless>
+
+    <xacro:wheel side="${side}" location="${location}" steer="${steer}"/>
+
+  </xacro:macro>
+
+  <xacro:linkage location="front" lon="1" side="left" lat="1" steer="true"/>
+  <xacro:linkage location="front" lon="1" side="right" lat="-1" steer="true"/>
+  <xacro:linkage location="back" lon="-1" side="left" lat="1" steer="false"/>
+  <xacro:linkage location="back" lon="-1" side="right" lat="-1" steer="false"/>
+
+  <!-- Specify Gazebo Plugins to be used in model -->
+  <gazebo>
+    <!-- Gazebo plugin for ROS Control -->
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+      <robotNamespace>/</robotNamespace>
+    </plugin>
+    <!-- Custom Gazebo_Push_Plugin to push model -->
+    <plugin name="model_push" filename="libmodel_push.so"/>
+
+    <plugin name="p3d_base_controller" filename="libgazebo_ros_p3d.so">
+      <alwaysOn>true</alwaysOn>
+      <updateRate>50.0</updateRate>
+      <bodyName>base_link</bodyName>
+      <topicName>ground_truth/state</topicName>
+      <gaussianNoise>0.01</gaussianNoise>
+      <frameName>world</frameName>
+      <xyzOffsets>0 0 0</xyzOffsets>
+      <rpyOffsets>0 0 0</rpyOffsets>
+    </plugin>
+  </gazebo>
+
+</robot>
