@@ -22,5 +22,5 @@ catkin_package(
     gazebo_ros
 )
 
-add_library(ackermann_control_plugin SHARED plugin/ackermann_control_plugin.cpp)
-target_link_libraries(ackermann_control_plugin ${GAZEBO_LIBRARIES})
+add_library(AckermannControlPlugin SHARED plugins/AckermannControlPlugin.cpp)
+target_link_libraries(AckermannControlPlugin ${GAZEBO_LIBRARIES})

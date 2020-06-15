@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot name="roscontrol" xmlns:xacro="http://ros.org/wiki/xacro">
+<robot name="ackermann" xmlns:xacro="http://ros.org/wiki/xacro">
 
   <xacro:property name="base_length" value="1.0" />
   <xacro:property name="base_width" value="0.4" />
@@ -150,13 +150,13 @@
   <!-- Specify Gazebo Plugins to be used in model -->
   <gazebo>
     <!-- Gazebo plugin for ROS Control -->
-    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+    <!-- <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
       <robotNamespace>/</robotNamespace>
-    </plugin>
+    </plugin> -->
     <!-- Custom Gazebo_Push_Plugin to push model -->
-    <plugin name="model_push" filename="libmodel_push.so"/>
+    <!-- <plugin name="model_push" filename="libmodel_push.so"/> -->
 
-    <plugin name="p3d_base_controller" filename="libgazebo_ros_p3d.so">
+    <!-- <plugin name="p3d_base_controller" filename="libgazebo_ros_p3d.so">
       <alwaysOn>true</alwaysOn>
       <updateRate>50.0</updateRate>
       <bodyName>base_link</bodyName>
@@ -165,6 +165,18 @@
       <frameName>world</frameName>
       <xyzOffsets>0 0 0</xyzOffsets>
       <rpyOffsets>0 0 0</rpyOffsets>
+    </plugin> -->
+
+    <!-- <plugin name="flas" filename="libbla.so"/> -->
+
+    <plugin name="ackermann_control_plugin" filename="libAckermannControlPlugin.so">
+      <base_link>base_link</base_link>
+      <flwheel_steering_p_gain>1e4</flwheel_steering_p_gain>
+      <frwheel_steering_p_gain>1e4</frwheel_steering_p_gain>
+      <flwheel_steering_i_gain>0</flwheel_steering_i_gain>
+      <frwheel_steering_i_gain>0</frwheel_steering_i_gain>
+      <flwheel_steering_d_gain>3e2</flwheel_steering_d_gain>
+      <frwheel_steering_d_gain>3e2</frwheel_steering_d_gain>
     </plugin>
   </gazebo>
 
