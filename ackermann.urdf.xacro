@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
 <robot name="ackermann" xmlns:xacro="http://ros.org/wiki/xacro">
 
-  <xacro:property name="base_length" value="1.0" />
-  <xacro:property name="base_width" value="0.4" />
-  <xacro:property name="wheel_diam" value="0.2" />
+  <xacro:property name="base_length" value="4.45" />
+  <xacro:property name="base_width" value="2.7" />
+  <xacro:property name="base_height" value="1.45" />
+  <xacro:property name="wheel_diam" value="0.7112" />
   <xacro:property name="pi" value="3.1415" />
 
   <material name="blue">
@@ -28,16 +29,16 @@
   <link name="base_link">
     <visual>
       <geometry>
-        <box size="${base_length} ${base_width} 0.08"/>
+        <box size="${base_length} ${base_width} ${base_height}"/>
       </geometry>
       <material name="blue"/>
     </visual>
     <collision>
       <geometry>
-        <box size="${base_length} ${base_width} 0.08"/>
+        <box size="${base_length} ${base_width} ${base_height}"/>
       </geometry>
     </collision>
-    <xacro:default_inertial mass="10"/>
+    <xacro:default_inertial mass="1000"/>
   </link>
 
   <xacro:macro name="wheel" params="side location steer">
@@ -45,14 +46,14 @@
       <visual>
         <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
         <geometry>
-          <cylinder radius="${wheel_diam/2}" length="0.05"/>
+          <cylinder radius="${wheel_diam/2}" length="0.2"/>
         </geometry>
         <material name="black"/>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
         <geometry>
-          <cylinder radius="${wheel_diam/2}" length="0.05"/>
+          <cylinder radius="${wheel_diam/2}" length="0.2"/>
         </geometry>
       </collision>
       <xacro:default_inertial mass="1"/>
@@ -125,16 +126,16 @@
         <axis xyz="0 0 1" rpy="0 0 0" />
         <parent link="base_link"/>
         <child link="${location}_${side}_linkage"/>
-        <origin xyz="${base_length*lon/3} ${base_width*lat/2} 0" rpy="0 0 0"/>
+        <origin xyz="${base_length*lon/3} ${base_width*lat/2} -${base_height/2}" rpy="0 0 0"/>
       </joint>
     </xacro:if>
 
     <xacro:unless value="${steer}">
-      <joint name="${location}_${side}_steer_joint" type="fixed">
+      <joint name="${location}_${side}_axel_joint" type="fixed">
         <axis xyz="0 0 1" rpy="0 0 0" />
         <parent link="base_link"/>
         <child link="${location}_${side}_linkage"/>
-        <origin xyz="${base_length*lon/3} ${base_width*lat/2} 0" rpy="0 0 0"/>
+        <origin xyz="${base_length*lon/3} ${base_width*lat/2} -${base_height/2}" rpy="0 0 0"/>
       </joint>
     </xacro:unless>
 
@@ -171,12 +172,14 @@
 
     <plugin name="ackermann_control_plugin" filename="libAckermannControlPlugin.so">
       <base_link>base_link</base_link>
-      <flwheel_steering_p_gain>1e4</flwheel_steering_p_gain>
-      <frwheel_steering_p_gain>1e4</frwheel_steering_p_gain>
-      <flwheel_steering_i_gain>0</flwheel_steering_i_gain>
-      <frwheel_steering_i_gain>0</frwheel_steering_i_gain>
-      <flwheel_steering_d_gain>3e2</flwheel_steering_d_gain>
-      <frwheel_steering_d_gain>3e2</frwheel_steering_d_gain>
+      <max_speed>35.7632</max_speed>
+      <wheel_diam>${wheel_diam}</wheel_diam>
+      <wheel_angular_velocity_p_gain>1e4</wheel_angular_velocity_p_gain>
+      <wheel_angular_velocity_i_gain>0</wheel_angular_velocity_i_gain>
+      <wheel_angular_velocity_d_gain>2e3</wheel_angular_velocity_d_gain>
+      <wheel_steering_angle_p_gain>10</wheel_steering_angle_p_gain>
+      <wheel_steering_angle_i_gain>0</wheel_steering_angle_i_gain>
+      <wheel_steering_angle_d_gain>6</wheel_steering_angle_d_gain>
     </plugin>
   </gazebo>
 

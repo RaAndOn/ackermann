@@ -46,11 +46,37 @@ private:
 
   physics::ModelPtr m_model;
 
-  /// @brief Linear velocity of chassis c.g. in world frame at last update (m/s)
-  ignition::math::Vector3d m_vehicleLinearVelocity;
+  /// @brief Pointer to the world
+  physics::WorldPtr m_world;
+
+  /// @brief Last sim time received
+  common::Time m_lastSimTime;
 
   /// @brief Chassis link
   physics::LinkPtr m_baseLink;
+
+  /// @brief Front left steering joint
+  physics::JointPtr m_flWheelSteeringJoint;
+
+  /// @brief Front right steering joint
+  physics::JointPtr m_frWheelSteeringJoint;
+
+  /// @brief Front left velocity joint
+  physics::JointPtr m_flWheelVelocityJoint;
+
+  /// @brief Front right velocity joint
+  physics::JointPtr m_frWheelVelocityJoint;
+
+  /// @brief PID control for the wheel angular velocities
+  common::PID m_wheelAngularVelocityPID;
+
+  /// @brief PID control for the front left wheel steer angle
+  common::PID m_flWheelSteerAnglePID;
+
+  /// @brief PID control for the front right wheel steer angle
+  common::PID m_frWheelSteerAnglePID;
+
+  double m_maxWheelSpeed;
 
   /// @brief Update on every time step
   void OnUpdate();
