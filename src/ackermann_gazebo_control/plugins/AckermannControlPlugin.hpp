@@ -3,6 +3,7 @@
 // #include <gazebo/gazebo.hh>
 #include <geometry_msgs/TwistStamped.h>
 #include <ignition/math/Vector3.hh>
+#include <mutex>
 #include <ros/ros.h>
 
 // using namespace gazebo;
@@ -77,6 +78,12 @@ private:
   common::PID m_frWheelSteerAnglePID;
 
   double m_maxWheelSpeed;
+
+  double m_desiredVelocity;
+
+  double m_desiredSteerAngle;
+
+  std::mutex m_mutex;
 
   /// @brief Update on every time step
   void OnUpdate();

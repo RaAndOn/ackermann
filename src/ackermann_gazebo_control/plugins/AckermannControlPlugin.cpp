@@ -1,3 +1,4 @@
+#include <cmath>
 #include <functional>
 #include <gazebo/common/common.hh>
 #include <gazebo/gazebo.hh>
@@ -16,6 +17,9 @@ AckermannControlPlugin::~AckermannControlPlugin(){};
 void AckermannControlPlugin::Load(physics::ModelPtr parent,
                                   sdf::ElementPtr sdf) {
   // sdf contains all the elements in the <plugin> tag in the urdf file
+
+  // Lock thread
+  std::lock_guard<std::mutex> lock(this->m_mutex);
 
   // Store the pointer to the model
   this->m_model = parent;
@@ -47,7 +51,10 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
   this->m_controlSub = m_nh.subscribe(
       "cmd_vel", 10, &AckermannControlPlugin::controlCallback, this);
 
+  // Initialize variables
   this->m_lastSimTime = 0.0;
+  this->m_desiredVelocity = 0.0;
+  this->m_desiredSteerAngle = 0.0;
 
   // Get steering angle PID gains
   // Use the same gains for both front wheels
@@ -98,6 +105,9 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
 
 // Called by the world update start event
 void AckermannControlPlugin::OnUpdate() {
+  // Lock thread
+  std::lock_guard<std::mutex> lock(this->m_mutex);
+
   // Calculate dt since last time step
   common::Time currTime = this->m_world->SimTime();
   double dt{(currTime - this->m_lastSimTime).Double()};
@@ -111,17 +121,25 @@ void AckermannControlPlugin::OnUpdate() {
   // Get current linear velocity of the vehicle
   const auto currentLinearVelocity{m_baseLink->WorldCoGLinearVel()};
 
-  // Calculate the current error between the desired and actual vehicle velocity
-  const double velocityError = currentLinearVelocity.Length() - 40.0;
-  // Get the new wheel force command based on the linear velocity error and the
-  // PID
+  // Calculate the current error between the desired and actual vehicle
+  // velocity
+  const double velocityError =
+      currentLinearVelocity.Length() - this->m_desiredVelocity;
+
+  // Get the new wheel force command based on the linear velocity error and
+  // the PID
+  // TODO: Do I want to update the PID even if velocity error is less than eps?
   double wheelForceCmd =
       this->m_wheelAngularVelocityPID.Update(velocityError, dt);
-  // Send the new force to both wheels
-  // "0" is the index zero-indexed value of the roll position
-  // TODO: Check that "0" description is correct
-  this->m_flWheelVelocityJoint->SetForce(0, wheelForceCmd);
-  this->m_frWheelVelocityJoint->SetForce(0, wheelForceCmd);
+
+  // Check that velocity error is large enough to apply a force
+  if (std::abs(velocityError) > 0.1) {
+    // Send the new force to both wheels
+    // "0" is the index zero-indexed value of the roll position
+    // TODO: Check that "0" description is correct
+    this->m_flWheelVelocityJoint->SetForce(0, wheelForceCmd);
+    this->m_frWheelVelocityJoint->SetForce(0, wheelForceCmd);
+  }
 
   // Get current steer angles of both wheels
   // "2" is the index zero-indexed value of the yaw position
@@ -130,16 +148,27 @@ void AckermannControlPlugin::OnUpdate() {
   double frSteeringAngle = this->m_frWheelSteeringJoint->Position(2);
 
   // Calculate the current error between the desired and actual steer angle
-  const double flError = flSteeringAngle - 0.0;
-  const double frError = frSteeringAngle - 0.0;
+  const double flError = flSteeringAngle - this->m_desiredSteerAngle;
+  const double frError = frSteeringAngle - this->m_desiredSteerAngle;
+
   // Calculate the new steering angle force commands
+  // TODO: Do I want to update the PID even if velocity error is less than eps?
   double flWheelForceCmd = this->m_flWheelSteerAnglePID.Update(flError, dt);
   double frWheelForceCmd = this->m_frWheelSteerAnglePID.Update(frError, dt);
-  // Apply the new force commands
-  // "2" is the index zero-indexed value of the yaw position
-  // TODO: Check that "2" description is correct
-  this->m_flWheelSteeringJoint->SetForce(2, flWheelForceCmd);
-  this->m_frWheelSteeringJoint->SetForce(2, frWheelForceCmd);
+
+  if (std::abs(flError) > DBL_EPSILON) {
+    // Apply the new force commands
+    // "2" is the index zero-indexed value of the yaw position
+    // TODO: Check that "2" description is correct
+    this->m_flWheelSteeringJoint->SetForce(2, flWheelForceCmd);
+  }
+
+  if (std::abs(frError) > DBL_EPSILON) {
+    // Apply the new force commands
+    // "2" is the index zero-indexed value of the yaw position
+    // TODO: Check that "2" description is correct
+    this->m_frWheelSteeringJoint->SetForce(2, frWheelForceCmd);
+  }
 
   // Update last sim time
   this->m_lastSimTime = currTime;
@@ -148,7 +177,16 @@ void AckermannControlPlugin::OnUpdate() {
 // Called by the world update start event
 void AckermannControlPlugin::controlCallback(
     const geometry_msgs::TwistStamped &cmd) {
-  ROS_INFO("Control");
+  // Lock thread
+  std::lock_guard<std::mutex> lock(this->m_mutex);
+  // linear.x represents the desired linear velocity of the vehicle (m/s)
+  this->m_desiredVelocity = cmd.twist.linear.x;
+  // angular.z represents the desired steering angle of the vehicle (radians)
+  this->m_desiredSteerAngle = cmd.twist.angular.z;
+  ROS_INFO("Desired Velocity: %s m/s",
+           std::to_string(m_desiredVelocity).c_str());
+  ROS_INFO("Desired Steer Angle: %s radians",
+           std::to_string(m_desiredSteerAngle).c_str());
 }
 
 // Register this plugin with the simulator
