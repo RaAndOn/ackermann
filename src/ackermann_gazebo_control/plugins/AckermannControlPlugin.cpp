@@ -47,6 +47,18 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
     this->m_robotNamespace =
         sdf->GetElement("robotNamespace")->Get<std::string>() + "/";
   }
+
+  if (sdf->HasElement("longitudinal_length_between_wheels")) {
+    this->m_l = sdf->Get<double>("longitudinal_length_between_wheels");
+  } else {
+    ROS_ERROR("Parameter 'longitudinal_length_between_wheels' missing");
+  }
+  if (sdf->HasElement("longitudinal_length_between_wheels")) {
+    this->m_w = sdf->Get<double>("lateral_width_between_wheels");
+  } else {
+    ROS_ERROR("Parameter 'lateral_width_between_wheels' missing");
+  }
+
   ros::NodeHandle m_nh(this->m_robotNamespace);
   this->m_controlSub = m_nh.subscribe(
       "cmd_vel", 10, &AckermannControlPlugin::controlCallback, this);
@@ -55,6 +67,8 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
   this->m_lastSimTime = 0.0;
   this->m_desiredVelocity = 0.0;
   this->m_desiredSteerAngle = 0.0;
+  this->m_desiredLeftSteerAngle = 0.0;
+  this->m_desiredRightSteerAngle = 0.0;
 
   // Get steering angle PID gains
   // Use the same gains for both front wheels
@@ -148,8 +162,8 @@ void AckermannControlPlugin::OnUpdate() {
   double frSteeringAngle = this->m_frWheelSteeringJoint->Position(2);
 
   // Calculate the current error between the desired and actual steer angle
-  const double flError = flSteeringAngle - this->m_desiredSteerAngle;
-  const double frError = frSteeringAngle - this->m_desiredSteerAngle;
+  const double flError = flSteeringAngle - this->m_desiredLeftSteerAngle;
+  const double frError = frSteeringAngle - this->m_desiredRightSteerAngle;
 
   // Calculate the new steering angle force commands
   // TODO: Do I want to update the PID even if velocity error is less than eps?
@@ -187,6 +201,21 @@ void AckermannControlPlugin::controlCallback(
            std::to_string(m_desiredVelocity).c_str());
   ROS_INFO("Desired Steer Angle: %s radians",
            std::to_string(m_desiredSteerAngle).c_str());
+
+  // See `ackermann_geometry.pdf` for math
+  this->m_desiredLeftSteerAngle =
+      atan2(2 * this->m_l * sin(m_desiredSteerAngle),
+            2 * this->m_l * cos(m_desiredSteerAngle) -
+                this->m_w * sin(m_desiredSteerAngle));
+  this->m_desiredRightSteerAngle =
+      atan2(2 * this->m_l * sin(m_desiredSteerAngle),
+            2 * this->m_l * cos(m_desiredSteerAngle) +
+                this->m_w * sin(m_desiredSteerAngle));
+
+  ROS_INFO("Desired Left Steer Angle: %s radians",
+           std::to_string(m_desiredLeftSteerAngle).c_str());
+  ROS_INFO("Desired Right Steer Angle: %s radians",
+           std::to_string(m_desiredRightSteerAngle).c_str());
 }
 
 // Register this plugin with the simulator

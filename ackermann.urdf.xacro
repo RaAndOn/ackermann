@@ -180,6 +180,8 @@
       <wheel_steering_angle_p_gain>10</wheel_steering_angle_p_gain>
       <wheel_steering_angle_i_gain>0</wheel_steering_angle_i_gain>
       <wheel_steering_angle_d_gain>6</wheel_steering_angle_d_gain>
+      <longitudinal_length_between_wheels>${base_length*2/3}</longitudinal_length_between_wheels>
+      <lateral_width_between_wheels>${base_width}</lateral_width_between_wheels>
     </plugin>
   </gazebo>
 

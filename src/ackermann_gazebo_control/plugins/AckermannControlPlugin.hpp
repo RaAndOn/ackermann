@@ -77,11 +77,19 @@ private:
   /// @brief PID control for the front right wheel steer angle
   common::PID m_frWheelSteerAnglePID;
 
+  double m_l;
+
+  double m_w;
+
   double m_maxWheelSpeed;
 
   double m_desiredVelocity;
 
   double m_desiredSteerAngle;
+
+  double m_desiredLeftSteerAngle;
+
+  double m_desiredRightSteerAngle;
 
   std::mutex m_mutex;
 
@@ -89,5 +97,7 @@ private:
   void OnUpdate();
 
   void controlCallback(const geometry_msgs::TwistStamped &cmd);
+
+  // void setSteeringAngles(const double angle);
 };
 } // namespace gazebo
