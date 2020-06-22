@@ -174,12 +174,12 @@
       <base_link>base_link</base_link>
       <max_speed>35.7632</max_speed>
       <wheel_diam>${wheel_diam}</wheel_diam>
-      <wheel_angular_velocity_p_gain>1e4</wheel_angular_velocity_p_gain>
+      <wheel_angular_velocity_p_gain>1e5</wheel_angular_velocity_p_gain>
       <wheel_angular_velocity_i_gain>0</wheel_angular_velocity_i_gain>
-      <wheel_angular_velocity_d_gain>2e3</wheel_angular_velocity_d_gain>
-      <wheel_steering_angle_p_gain>10</wheel_steering_angle_p_gain>
+      <wheel_angular_velocity_d_gain>1e3</wheel_angular_velocity_d_gain>
+      <wheel_steering_angle_p_gain>1e4</wheel_steering_angle_p_gain>
       <wheel_steering_angle_i_gain>0</wheel_steering_angle_i_gain>
-      <wheel_steering_angle_d_gain>6</wheel_steering_angle_d_gain>
+      <wheel_steering_angle_d_gain>2e3</wheel_steering_angle_d_gain>
       <longitudinal_length_between_wheels>${base_length*2/3}</longitudinal_length_between_wheels>
       <lateral_width_between_wheels>${base_width}</lateral_width_between_wheels>
     </plugin>

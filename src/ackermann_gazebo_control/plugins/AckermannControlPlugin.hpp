@@ -6,6 +6,8 @@
 #include <mutex>
 #include <ros/ros.h>
 
+#include <ackermann_msgs/AckermannSteering.h>
+
 // using namespace gazebo;
 
 namespace gazebo {
@@ -42,6 +44,8 @@ private:
   ros::NodeHandle m_nh;
 
   ros::Subscriber m_controlSub;
+
+  ros::Publisher m_steeringPub;
 
   event::ConnectionPtr m_updateConnection;
 
@@ -98,6 +102,6 @@ private:
 
   void controlCallback(const geometry_msgs::TwistStamped &cmd);
 
-  // void setSteeringAngles(const double angle);
+  double sign(const double num);
 };
 } // namespace gazebo

@@ -8,6 +8,7 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   gazebo_ros
+  ackermann_msgs
 )
 
 # Depend on system install of Gazebo
@@ -20,6 +21,7 @@ catkin_package(
   DEPENDS
     roscpp
     gazebo_ros
+    ackermann_msgs
 )
 
 add_library(AckermannControlPlugin SHARED plugins/AckermannControlPlugin.cpp)

@@ -63,6 +63,9 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
   this->m_controlSub = m_nh.subscribe(
       "cmd_vel", 10, &AckermannControlPlugin::controlCallback, this);
 
+  this->m_steeringPub = m_nh.advertise<ackermann_msgs::AckermannSteering>(
+      "ackermann/steering", 1);
+
   // Initialize variables
   this->m_lastSimTime = 0.0;
   this->m_desiredVelocity = 0.0;
@@ -80,19 +83,20 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
       sdf->Get<double>("wheel_steering_angle_d_gain")};
   // Max steering force magnitude
   // TODO: Calculate
-  double maxSteeringForceMagnitude{1000.0};
+  // double maxSteeringForceMagnitude{100000.0};
   // Set front right left steering angle PID gains
   this->m_flWheelSteerAnglePID.SetPGain(wheelSteeringAnglePGain);
   this->m_flWheelSteerAnglePID.SetIGain(wheelSteeringAngleIGain);
   this->m_flWheelSteerAnglePID.SetDGain(wheelSteeringAngleDGain);
-  this->m_flWheelSteerAnglePID.SetCmdMax(maxSteeringForceMagnitude);
-  this->m_flWheelSteerAnglePID.SetCmdMin(-maxSteeringForceMagnitude);
+  // this->m_flWheelSteerAnglePID.SetCmdMax(maxSteeringForceMagnitude);
+  // this->m_flWheelSteerAnglePID.SetCmdMin(-maxSteeringForceMagnitude);
+
   // Set front right wheel steering angle PID gains
   this->m_frWheelSteerAnglePID.SetPGain(wheelSteeringAnglePGain);
   this->m_frWheelSteerAnglePID.SetIGain(wheelSteeringAngleIGain);
   this->m_frWheelSteerAnglePID.SetDGain(wheelSteeringAngleDGain);
-  this->m_frWheelSteerAnglePID.SetCmdMax(maxSteeringForceMagnitude);
-  this->m_frWheelSteerAnglePID.SetCmdMin(-maxSteeringForceMagnitude);
+  // this->m_frWheelSteerAnglePID.SetCmdMax(maxSteeringForceMagnitude);
+  // this->m_frWheelSteerAnglePID.SetCmdMin(-maxSteeringForceMagnitude);
 
   // Get wheel velocity angle PID gains
   // Use the same PID controller for both front wheels
@@ -114,7 +118,7 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
   this->m_wheelAngularVelocityPID.SetIGain(wheelVelocityIGain);
   this->m_wheelAngularVelocityPID.SetDGain(wheelVelocityDGain);
   this->m_wheelAngularVelocityPID.SetCmdMax(m_maxWheelSpeed);
-  this->m_wheelAngularVelocityPID.SetCmdMin(0.0);
+  this->m_wheelAngularVelocityPID.SetCmdMin(-m_maxWheelSpeed);
 }
 
 // Called by the world update start event
@@ -133,12 +137,14 @@ void AckermannControlPlugin::OnUpdate() {
   // }
 
   // Get current linear velocity of the vehicle
+  const double direction{AckermannControlPlugin::sign(
+      this->m_flWheelVelocityJoint->GetVelocity(0))};
   const auto currentLinearVelocity{m_baseLink->WorldCoGLinearVel()};
+  const double currentLinearSpeed{direction * currentLinearVelocity.Length()};
 
   // Calculate the current error between the desired and actual vehicle
   // velocity
-  const double velocityError =
-      currentLinearVelocity.Length() - this->m_desiredVelocity;
+  const double velocityError = currentLinearSpeed - this->m_desiredVelocity;
 
   // Get the new wheel force command based on the linear velocity error and
   // the PID
@@ -150,16 +156,16 @@ void AckermannControlPlugin::OnUpdate() {
   if (std::abs(velocityError) > 0.1) {
     // Send the new force to both wheels
     // "0" is the index zero-indexed value of the roll position
-    // TODO: Check that "0" description is correct
+    // TODO: Figure out what "0" means
     this->m_flWheelVelocityJoint->SetForce(0, wheelForceCmd);
     this->m_frWheelVelocityJoint->SetForce(0, wheelForceCmd);
   }
 
   // Get current steer angles of both wheels
-  // "2" is the index zero-indexed value of the yaw position
-  // TODO: Check that "2" description is correct
-  double flSteeringAngle = this->m_flWheelSteeringJoint->Position(2);
-  double frSteeringAngle = this->m_frWheelSteeringJoint->Position(2);
+  // TODO: Figure out what "0" means, I've tried "1" and "2" as well, no
+  // difference
+  double flSteeringAngle = this->m_flWheelSteeringJoint->Position(0);
+  double frSteeringAngle = this->m_frWheelSteeringJoint->Position(0);
 
   // Calculate the current error between the desired and actual steer angle
   const double flError = flSteeringAngle - this->m_desiredLeftSteerAngle;
@@ -172,17 +178,23 @@ void AckermannControlPlugin::OnUpdate() {
 
   if (std::abs(flError) > DBL_EPSILON) {
     // Apply the new force commands
-    // "2" is the index zero-indexed value of the yaw position
-    // TODO: Check that "2" description is correct
-    this->m_flWheelSteeringJoint->SetForce(2, flWheelForceCmd);
+    // TODO: Figure out what "0" means, I've tried "1" and "2" as well, no
+    // difference
+    this->m_flWheelSteeringJoint->SetForce(0, flWheelForceCmd);
   }
 
   if (std::abs(frError) > DBL_EPSILON) {
     // Apply the new force commands
-    // "2" is the index zero-indexed value of the yaw position
-    // TODO: Check that "2" description is correct
-    this->m_frWheelSteeringJoint->SetForce(2, frWheelForceCmd);
+    // TODO: Figure out what "0" means, I've tried "1" and "2" as well, no
+    // difference
+    this->m_frWheelSteeringJoint->SetForce(0, frWheelForceCmd);
   }
+
+  ackermann_msgs::AckermannSteering currentSteering;
+  currentSteering.front_left_steering_angle = flSteeringAngle;
+  currentSteering.front_right_steering_angle = frSteeringAngle;
+  currentSteering.speed = currentLinearSpeed;
+  m_steeringPub.publish(currentSteering);
 
   // Update last sim time
   this->m_lastSimTime = currTime;
@@ -216,6 +228,14 @@ void AckermannControlPlugin::controlCallback(
            std::to_string(m_desiredLeftSteerAngle).c_str());
   ROS_INFO("Desired Right Steer Angle: %s radians",
            std::to_string(m_desiredRightSteerAngle).c_str());
+}
+
+double AckermannControlPlugin::sign(const double num) {
+  if (num < 0)
+    return -1.0;
+  if (num > 0)
+    return 1.0;
+  return 0.0;
 }
 
 // Register this plugin with the simulator
