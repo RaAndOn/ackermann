@@ -1,11 +1,20 @@
 <?xml version="1.0"?>
 <robot name="ackermann" xmlns:xacro="http://ros.org/wiki/xacro">
 
-  <xacro:property name="base_length" value="4.45" />
-  <xacro:property name="base_width" value="2.7" />
-  <xacro:property name="base_height" value="1.45" />
+  <!-- Dimensions taken 2019 from Chevy Cruze https://www.caranddriver.com/chevrolet/cruze/specs -->
+
+  <!-- Mass in kilograms -->
+  <xacro:property name="chassis_mass" value="1351" />
+  <xacro:property name="wheel_mass" value="11" />
+  <!-- Length in meters -->
+  <xacro:property name="chassis_length" value="4.45" />
+  <xacro:property name="chassis_width" value="2.7" />
+  <xacro:property name="chassis_height" value="1.45" />
   <xacro:property name="wheel_diam" value="0.7112" />
+  <xacro:property name="wheel_depth" value="0.2" />
+  <!-- Constant -->
   <xacro:property name="pi" value="3.1415" />
+
 
   <material name="blue">
     <color rgba="0 0 0.8 1"/>
@@ -19,26 +28,44 @@
     <color rgba="1 1 1 1"/>
   </material>
 
-  <xacro:macro name="default_inertial" params="mass">
+  <!-- Moment of inertia formulas gotten from wikipedia: https://en.wikipedia.org/wiki/List_of_moments_of_inertia#List_of_3D_inertia_tensors -->
+  <xacro:macro name="solid_cylinder_inertial" params="mass r d">
     <inertial>
       <mass value="${mass}" />
-      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+      <inertia  ixx="${(1/12)*mass*(3*r*r + d*d)}" ixy="0.0" ixz="0.0" iyy="${(1/2)*mass*r*r}" iyz="0.0" izz="${(1/12)*mass*(3*r*r + d*d)}" />
     </inertial>
   </xacro:macro>
 
-  <link name="base_link">
+  <xacro:macro name="box_inertial" params="mass h w l">
+    <inertial>
+      <mass value="${mass}" />
+      <inertia ixx="${(1/12)*mass*(w*w + h*h)}" ixy="0.0" ixz="0.0" iyy="${(1/12)*mass*(h*h + l*l)}" iyz="0.0" izz="${(1/12)*mass*(w*w + l*l)}"/>
+    </inertial>
+  </xacro:macro>
+
+  <!-- Base link should not have inertia -->
+  <link name="base_link"/>
+
+  <joint name="base_link_connection" type="fixed">
+    <parent link="base_link"/>
+    <child link="chassis"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+
+  <link name="chassis">
     <visual>
       <geometry>
-        <box size="${base_length} ${base_width} ${base_height}"/>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
       </geometry>
       <material name="blue"/>
     </visual>
     <collision>
       <geometry>
-        <box size="${base_length} ${base_width} ${base_height}"/>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
       </geometry>
     </collision>
-    <xacro:default_inertial mass="1000"/>
+    <xacro:box_inertial mass="${chassis_mass}" h="${chassis_height}" w="${chassis_width}" l="${chassis_length}"/>
   </link>
 
   <xacro:macro name="wheel" params="side location steer">
@@ -46,17 +73,17 @@
       <visual>
         <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
         <geometry>
-          <cylinder radius="${wheel_diam/2}" length="0.2"/>
+          <cylinder radius="${wheel_diam/2}" length="${wheel_depth}"/>
         </geometry>
         <material name="black"/>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
         <geometry>
-          <cylinder radius="${wheel_diam/2}" length="0.2"/>
+          <cylinder radius="${wheel_diam/2}" length="${wheel_depth}"/>
         </geometry>
       </collision>
-      <xacro:default_inertial mass="1"/>
+      <xacro:solid_cylinder_inertial mass="${wheel_mass}" r="${wheel_diam/2}" d="${wheel_depth}"/>
     </link>
 
     <joint name="${location}_${side}_wheel_velocity_joint" type="continuous">
@@ -69,16 +96,16 @@
     <!-- This block provides the simulator (Gazebo) with information on a few additional
     physical properties. See http://gazebosim.org/tutorials/?tut=ros_urdf for more-->
     <gazebo reference="${location}_${side}_wheel">
-      <mu1 value="200.0"/>
-      <mu2 value="100.0"/>
-      <kp value="10000000.0" />
-      <kd value="1.0" />
+      <mu1>0.9</mu1>
+      <mu2>0.9</mu2>
+      <minDepth>0.005</minDepth>
+      <kp>1e8</kp>
       <material>Gazebo/Grey</material>
     </gazebo>
 
     <!-- This block connects the wheel joint to an actuator (motor), which informs both
     simulation and visualization of the robot -->
-    <transmission name="${location}_${side}_wheel_velocity_trans">
+    <!-- <transmission name="${location}_${side}_wheel_velocity_trans">
       <type>transmission_interface/SimpleTransmission</type>
       <actuator name="${location}_${side}_wheel_velocity_motor">
         <mechanicalReduction>1</mechanicalReduction>
@@ -98,7 +125,7 @@
           <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
         </joint>
       </transmission>
-    </xacro:if>
+    </xacro:if> -->
 
   </xacro:macro>
 
@@ -112,30 +139,24 @@
         </geometry>
         <material name="white"/>
       </visual>
-      <!-- <collision>
-        <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
-        <geometry>
-          <cylinder radius=".05" length=".05"/>
-        </geometry>
-      </collision> -->
-      <xacro:default_inertial mass="1"/>
+      <xacro:solid_cylinder_inertial mass="10" r=".1" d="${chassis_width/2}"/>
     </link>
 
     <xacro:if value="${steer}">
       <joint name="${location}_${side}_steer_joint" type="continuous">
         <axis xyz="0 0 1" rpy="0 0 0" />
-        <parent link="base_link"/>
+        <parent link="chassis"/>
         <child link="${location}_${side}_linkage"/>
-        <origin xyz="${base_length*lon/3} ${base_width*lat/2} -${base_height/2}" rpy="0 0 0"/>
+        <origin xyz="${chassis_length*lon/3} ${chassis_width*lat/2} -${chassis_height/2}" rpy="0 0 0"/>
       </joint>
     </xacro:if>
 
     <xacro:unless value="${steer}">
       <joint name="${location}_${side}_axel_joint" type="fixed">
         <axis xyz="0 0 1" rpy="0 0 0" />
-        <parent link="base_link"/>
+        <parent link="chassis"/>
         <child link="${location}_${side}_linkage"/>
-        <origin xyz="${base_length*lon/3} ${base_width*lat/2} -${base_height/2}" rpy="0 0 0"/>
+        <origin xyz="${chassis_length*lon/3} ${chassis_width*lat/2} -${chassis_height/2}" rpy="0 0 0"/>
       </joint>
     </xacro:unless>
 
@@ -168,10 +189,8 @@
       <rpyOffsets>0 0 0</rpyOffsets>
     </plugin> -->
 
-    <!-- <plugin name="flas" filename="libbla.so"/> -->
-
     <plugin name="ackermann_control_plugin" filename="libAckermannControlPlugin.so">
-      <base_link>base_link</base_link>
+      <!-- <chassis>chassis</chassis> -->
       <max_speed>35.7632</max_speed>
       <wheel_diam>${wheel_diam}</wheel_diam>
       <wheel_angular_velocity_p_gain>1e5</wheel_angular_velocity_p_gain>
@@ -180,8 +199,8 @@
       <wheel_steering_angle_p_gain>1e4</wheel_steering_angle_p_gain>
       <wheel_steering_angle_i_gain>0</wheel_steering_angle_i_gain>
       <wheel_steering_angle_d_gain>2e3</wheel_steering_angle_d_gain>
-      <longitudinal_length_between_wheels>${base_length*2/3}</longitudinal_length_between_wheels>
-      <lateral_width_between_wheels>${base_width}</lateral_width_between_wheels>
+      <longitudinal_length_between_wheels>${chassis_length*2/3}</longitudinal_length_between_wheels>
+      <lateral_width_between_wheels>${chassis_width}</lateral_width_between_wheels>
     </plugin>
   </gazebo>
 
