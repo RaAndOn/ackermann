@@ -198,7 +198,7 @@
       <wheel_angular_velocity_d_gain>1e3</wheel_angular_velocity_d_gain>
       <wheel_steering_angle_p_gain>1e4</wheel_steering_angle_p_gain>
       <wheel_steering_angle_i_gain>0</wheel_steering_angle_i_gain>
-      <wheel_steering_angle_d_gain>2e3</wheel_steering_angle_d_gain>
+      <wheel_steering_angle_d_gain>1e3</wheel_steering_angle_d_gain>
       <longitudinal_length_between_wheels>${chassis_length*2/3}</longitudinal_length_between_wheels>
       <lateral_width_between_wheels>${chassis_width}</lateral_width_between_wheels>
     </plugin>

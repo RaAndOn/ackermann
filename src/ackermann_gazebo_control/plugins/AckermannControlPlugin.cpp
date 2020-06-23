@@ -83,20 +83,20 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
       sdf->Get<double>("wheel_steering_angle_d_gain")};
   // Max steering force magnitude
   // TODO: Calculate
-  // double maxSteeringForceMagnitude{100000.0};
+  double maxSteeringForceMagnitude{5000.0};
   // Set front right left steering angle PID gains
   this->m_flWheelSteerAnglePID.SetPGain(wheelSteeringAnglePGain);
   this->m_flWheelSteerAnglePID.SetIGain(wheelSteeringAngleIGain);
   this->m_flWheelSteerAnglePID.SetDGain(wheelSteeringAngleDGain);
-  // this->m_flWheelSteerAnglePID.SetCmdMax(maxSteeringForceMagnitude);
-  // this->m_flWheelSteerAnglePID.SetCmdMin(-maxSteeringForceMagnitude);
+  this->m_flWheelSteerAnglePID.SetCmdMax(maxSteeringForceMagnitude);
+  this->m_flWheelSteerAnglePID.SetCmdMin(-maxSteeringForceMagnitude);
 
   // Set front right wheel steering angle PID gains
   this->m_frWheelSteerAnglePID.SetPGain(wheelSteeringAnglePGain);
   this->m_frWheelSteerAnglePID.SetIGain(wheelSteeringAngleIGain);
   this->m_frWheelSteerAnglePID.SetDGain(wheelSteeringAngleDGain);
-  // this->m_frWheelSteerAnglePID.SetCmdMax(maxSteeringForceMagnitude);
-  // this->m_frWheelSteerAnglePID.SetCmdMin(-maxSteeringForceMagnitude);
+  this->m_frWheelSteerAnglePID.SetCmdMax(maxSteeringForceMagnitude);
+  this->m_frWheelSteerAnglePID.SetCmdMin(-maxSteeringForceMagnitude);
 
   // Get wheel velocity angle PID gains
   // Use the same PID controller for both front wheels
@@ -112,7 +112,7 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
   double maxSpeed = sdf->Get<double>("max_speed");
   double wheelDiameter = sdf->Get<double>("wheel_diam");
 
-  m_maxWheelSpeed = maxSpeed / (M_PI * wheelDiameter) * 10;
+  m_maxWheelSpeed = maxSpeed / (M_PI * wheelDiameter);
   // Set wheel velocity PID gains
   this->m_wheelAngularVelocityPID.SetPGain(wheelVelocityPGain);
   this->m_wheelAngularVelocityPID.SetIGain(wheelVelocityIGain);
