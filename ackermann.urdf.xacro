@@ -102,31 +102,6 @@
       <kp>1e8</kp>
       <material>Gazebo/Grey</material>
     </gazebo>
-
-    <!-- This block connects the wheel joint to an actuator (motor), which informs both
-    simulation and visualization of the robot -->
-    <!-- <transmission name="${location}_${side}_wheel_velocity_trans">
-      <type>transmission_interface/SimpleTransmission</type>
-      <actuator name="${location}_${side}_wheel_velocity_motor">
-        <mechanicalReduction>1</mechanicalReduction>
-      </actuator>
-      <joint name="${location}_${side}_wheel_velocity_joint">
-        <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
-      </joint>
-    </transmission>
-
-    <xacro:if value="${steer}">
-      <transmission name="${location}_${side}_wheel_steer_trans">
-        <type>transmission_interface/SimpleTransmission</type>
-        <actuator name="${location}_${side}_wheel_steer_motor">
-          <mechanicalReduction>1</mechanicalReduction>
-        </actuator>
-        <joint name="${location}_${side}_steer_joint">
-          <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
-        </joint>
-      </transmission>
-    </xacro:if> -->
-
   </xacro:macro>
 
   <xacro:macro name="linkage" params="location lon side lat steer">
@@ -172,22 +147,9 @@
   <!-- Specify Gazebo Plugins to be used in model -->
   <gazebo>
     <!-- Gazebo plugin for ROS Control -->
-    <!-- <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
       <robotNamespace>/</robotNamespace>
-    </plugin> -->
-    <!-- Custom Gazebo_Push_Plugin to push model -->
-    <!-- <plugin name="model_push" filename="libmodel_push.so"/> -->
-
-    <!-- <plugin name="p3d_base_controller" filename="libgazebo_ros_p3d.so">
-      <alwaysOn>true</alwaysOn>
-      <updateRate>50.0</updateRate>
-      <bodyName>base_link</bodyName>
-      <topicName>ground_truth/state</topicName>
-      <gaussianNoise>0.01</gaussianNoise>
-      <frameName>world</frameName>
-      <xyzOffsets>0 0 0</xyzOffsets>
-      <rpyOffsets>0 0 0</rpyOffsets>
-    </plugin> -->
+    </plugin>
 
     <plugin name="ackermann_control_plugin" filename="libAckermannControlPlugin.so">
       <!-- <chassis>chassis</chassis> -->

@@ -7,30 +7,4 @@
   </include>
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" />
-
-  <rosparam command="load"
-            file="./config/joints.yaml"
-            ns="ackermann_joint_state_controller" />
-  <rosparam command="load"
-            file="./config/front_left_steer.yaml"
-            ns="ackermann_front_left_steer_controller" />
-  <rosparam command="load"
-            file="./config/front_left_velocity.yaml"
-            ns="ackermann_front_left_velocity_controller" />
-  <!-- <rosparam command="load"
-            file="$(find urdf_sim_tutorial)/config/gripper.yaml"
-            ns="r2d2_gripper_controller" />
-  <rosparam command="load"
-            file="$(find urdf_sim_tutorial)/config/diffdrive.yaml"
-            ns="r2d2_diff_drive_controller" /> -->
-
-  <node name="ackermann_controller_spawner" pkg="controller_manager" type="spawner"
-    args="ackermann_joint_state_controller
-          ackermann_front_left_steer_controller
-          ackermann_front_left_velocity_controller
-          --shutdown-timeout 3"/>
-
-  <!-- <node name="rqt_robot_steering" pkg="rqt_robot_steering" type="rqt_robot_steering">
-    <param name="default_topic" value="/r2d2_diff_drive_controller/cmd_vel"/>
-  </node> -->
 </launch>

@@ -6,6 +6,9 @@
 #include <math.h>
 #include <ros/ros.h>
 
+#include <nav_msgs/Odometry.h>
+#include <sensor_msgs/JointState.h>
+
 #include "AckermannControlPlugin.hpp"
 
 using namespace gazebo;
@@ -66,12 +69,18 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
   this->m_steeringPub = m_nh.advertise<ackermann_msgs::AckermannSteering>(
       "ackermann/steering", 1);
 
+  this->m_groundTruthPub =
+      m_nh.advertise<nav_msgs::Odometry>("ackermann/ground_truth", 1);
+
+  this->m_jointPub =
+      m_nh.advertise<sensor_msgs::JointState>("/joint_states", 1);
+
   // Initialize variables
   this->m_lastSimTime = 0.0;
   this->m_desiredVelocity = 0.0;
   this->m_desiredSteerAngle = 0.0;
-  this->m_desiredLeftSteerAngle = 0.0;
-  this->m_desiredRightSteerAngle = 0.0;
+  this->m_desiredLeftWheelAngle = 0.0;
+  this->m_desiredRightWheelAngle = 0.0;
 
   // Get steering angle PID gains
   // Use the same gains for both front wheels
@@ -112,7 +121,7 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
   double maxSpeed = sdf->Get<double>("max_speed");
   double wheelDiameter = sdf->Get<double>("wheel_diam");
 
-  m_maxWheelSpeed = maxSpeed / (M_PI * wheelDiameter);
+  m_maxWheelSpeed = maxSpeed / (M_PI * wheelDiameter) * 10;
   // Set wheel velocity PID gains
   this->m_wheelAngularVelocityPID.SetPGain(wheelVelocityPGain);
   this->m_wheelAngularVelocityPID.SetIGain(wheelVelocityIGain);
@@ -136,11 +145,41 @@ void AckermannControlPlugin::OnUpdate() {
   //   return;
   // }
 
+  // Initialize ground truth message
+  nav_msgs::Odometry groundTruthOdom;
+  groundTruthOdom.header.stamp = ros::Time::now();
+
   // Get current linear velocity of the vehicle
   const double direction{AckermannControlPlugin::sign(
       this->m_flWheelVelocityJoint->GetVelocity(0))};
   const auto currentLinearVelocity{m_baseLink->WorldCoGLinearVel()};
   const double currentLinearSpeed{direction * currentLinearVelocity.Length()};
+
+  // Set the linear velocity in the ground truth  message
+  groundTruthOdom.twist.twist.linear.x = currentLinearVelocity.X();
+  groundTruthOdom.twist.twist.linear.y = currentLinearVelocity.Y();
+  groundTruthOdom.twist.twist.linear.z = currentLinearVelocity.Z();
+  // Get current angular velocity of the vehicle and set in ground truth message
+  const auto currentAngularVelocity{m_baseLink->WorldAngularVel()};
+  groundTruthOdom.twist.twist.angular.x = currentAngularVelocity.X();
+  groundTruthOdom.twist.twist.angular.y = currentAngularVelocity.Y();
+  groundTruthOdom.twist.twist.angular.z = currentAngularVelocity.Z();
+  // Get current world pose
+  const auto worldPose{m_baseLink->WorldCoGPose()};
+  // Set current position in ground truth message
+  const auto worldPos{worldPose.Pos()};
+  groundTruthOdom.pose.pose.position.x = worldPos.X();
+  groundTruthOdom.pose.pose.position.y = worldPos.Y();
+  groundTruthOdom.pose.pose.position.z = worldPos.Z();
+  // Set current orientation in ground truth message
+  const auto worldRot{worldPose.Rot()};
+  groundTruthOdom.pose.pose.orientation.x = worldRot.X();
+  groundTruthOdom.pose.pose.orientation.y = worldRot.Y();
+  groundTruthOdom.pose.pose.orientation.z = worldRot.Z();
+  groundTruthOdom.pose.pose.orientation.w = worldRot.W();
+
+  // Publish ground truth
+  this->m_groundTruthPub.publish(groundTruthOdom);
 
   // Calculate the current error between the desired and actual vehicle
   // velocity
@@ -168,8 +207,8 @@ void AckermannControlPlugin::OnUpdate() {
   double frSteeringAngle = this->m_frWheelSteeringJoint->Position(0);
 
   // Calculate the current error between the desired and actual steer angle
-  const double flError = flSteeringAngle - this->m_desiredLeftSteerAngle;
-  const double frError = frSteeringAngle - this->m_desiredRightSteerAngle;
+  const double flError = flSteeringAngle - this->m_desiredLeftWheelAngle;
+  const double frError = frSteeringAngle - this->m_desiredRightWheelAngle;
 
   // Calculate the new steering angle force commands
   // TODO: Do I want to update the PID even if velocity error is less than eps?
@@ -189,6 +228,39 @@ void AckermannControlPlugin::OnUpdate() {
     // difference
     this->m_frWheelSteeringJoint->SetForce(0, frWheelForceCmd);
   }
+
+  sensor_msgs::JointState joint_state;
+  joint_state.header.stamp = ros::Time::now();
+  joint_state.name.resize(6);
+  joint_state.position.resize(6);
+  joint_state.name[0] = "back_left_wheel_velocity_joint";
+  joint_state.position[0] = 0;
+  joint_state.name[1] = "back_right_wheel_velocity_joint";
+  joint_state.position[1] = 0;
+  joint_state.name[2] = "front_left_steer_joint";
+  joint_state.position[2] = flSteeringAngle;
+  joint_state.name[3] = "front_left_wheel_velocity_joint";
+  joint_state.position[3] = this->m_flWheelVelocityJoint->Position(0);
+  joint_state.name[4] = "front_right_steer_joint";
+  joint_state.position[4] = frSteeringAngle;
+  joint_state.name[5] = "front_right_wheel_velocity_joint";
+  joint_state.position[5] = this->m_frWheelVelocityJoint->Position(0);
+
+  this->m_jointPub.publish(joint_state);
+
+  geometry_msgs::TransformStamped odom_trans;
+  odom_trans.header.frame_id = "odom";
+  odom_trans.child_frame_id = "base_link";
+  odom_trans.header.stamp = ros::Time::now();
+  odom_trans.transform.translation.x = worldPos.X();
+  odom_trans.transform.translation.y = worldPos.Y();
+  odom_trans.transform.translation.z = worldPos.Z();
+  odom_trans.transform.rotation.x = worldRot.X();
+  odom_trans.transform.rotation.y = worldRot.Y();
+  odom_trans.transform.rotation.z = worldRot.Z();
+  odom_trans.transform.rotation.w = worldRot.W();
+
+  this->m_tfBroadcaster.sendTransform(odom_trans);
 
   ackermann_msgs::AckermannSteering currentSteering;
   currentSteering.front_left_steering_angle = flSteeringAngle;
@@ -215,19 +287,19 @@ void AckermannControlPlugin::controlCallback(
            std::to_string(m_desiredSteerAngle).c_str());
 
   // See `ackermann_geometry.pdf` for math
-  this->m_desiredLeftSteerAngle =
+  this->m_desiredLeftWheelAngle =
       atan2(2 * this->m_l * sin(m_desiredSteerAngle),
             2 * this->m_l * cos(m_desiredSteerAngle) -
                 this->m_w * sin(m_desiredSteerAngle));
-  this->m_desiredRightSteerAngle =
+  this->m_desiredRightWheelAngle =
       atan2(2 * this->m_l * sin(m_desiredSteerAngle),
             2 * this->m_l * cos(m_desiredSteerAngle) +
                 this->m_w * sin(m_desiredSteerAngle));
 
-  ROS_INFO("Desired Left Steer Angle: %s radians",
-           std::to_string(m_desiredLeftSteerAngle).c_str());
-  ROS_INFO("Desired Right Steer Angle: %s radians",
-           std::to_string(m_desiredRightSteerAngle).c_str());
+  ROS_INFO("Desired Left Wheel Angle: %s radians",
+           std::to_string(m_desiredLeftWheelAngle).c_str());
+  ROS_INFO("Desired Right Wheel Angle: %s radians",
+           std::to_string(m_desiredRightWheelAngle).c_str());
 }
 
 double AckermannControlPlugin::sign(const double num) {

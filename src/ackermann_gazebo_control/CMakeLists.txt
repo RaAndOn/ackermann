@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   gazebo_ros
   ackermann_msgs
+  tf2_ros
 )
 
 # Depend on system install of Gazebo
@@ -18,11 +19,11 @@ link_directories(${GAZEBO_LIBRARY_DIRS})
 include_directories(${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS})
 
 catkin_package(
-  DEPENDS
-    roscpp
-    gazebo_ros
-    ackermann_msgs
+  # DEPENDS
+  #   roscpp
+  #   gazebo_ros
+  #   ackermann_msgs
 )
 
 add_library(AckermannControlPlugin SHARED plugins/AckermannControlPlugin.cpp)
-target_link_libraries(AckermannControlPlugin ${GAZEBO_LIBRARIES})
+target_link_libraries(AckermannControlPlugin ${GAZEBO_LIBRARIES} ${catkin_LIBRARIES})
