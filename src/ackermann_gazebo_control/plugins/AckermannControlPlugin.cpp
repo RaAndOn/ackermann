@@ -38,6 +38,10 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
       this->m_model->GetJoint("front_left_wheel_velocity_joint");
   this->m_frWheelVelocityJoint =
       this->m_model->GetJoint("front_right_wheel_velocity_joint");
+  this->m_blWheelVelocityJoint =
+      this->m_model->GetJoint("back_left_wheel_velocity_joint");
+  this->m_brWheelVelocityJoint =
+      this->m_model->GetJoint("back_right_wheel_velocity_joint");
   // Store world pointer
   this->m_world = this->m_model->GetWorld();
 
@@ -203,12 +207,12 @@ void AckermannControlPlugin::OnUpdate() {
   // Get current steer angles of both wheels
   // TODO: Figure out what "0" means, I've tried "1" and "2" as well, no
   // difference
-  double flSteeringAngle = this->m_flWheelSteeringJoint->Position(0);
-  double frSteeringAngle = this->m_frWheelSteeringJoint->Position(0);
+  double flWheelAngle = this->m_flWheelSteeringJoint->Position(0);
+  double frWheelAngle = this->m_frWheelSteeringJoint->Position(0);
 
   // Calculate the current error between the desired and actual steer angle
-  const double flError = flSteeringAngle - this->m_desiredLeftWheelAngle;
-  const double frError = frSteeringAngle - this->m_desiredRightWheelAngle;
+  const double flError = flWheelAngle - this->m_desiredLeftWheelAngle;
+  const double frError = frWheelAngle - this->m_desiredRightWheelAngle;
 
   // Calculate the new steering angle force commands
   // TODO: Do I want to update the PID even if velocity error is less than eps?
@@ -229,27 +233,29 @@ void AckermannControlPlugin::OnUpdate() {
     this->m_frWheelSteeringJoint->SetForce(0, frWheelForceCmd);
   }
 
+  // Publish updated joint states for RVIZ visualization
   sensor_msgs::JointState joint_state;
   joint_state.header.stamp = ros::Time::now();
   joint_state.name.resize(6);
   joint_state.position.resize(6);
   joint_state.name[0] = "back_left_wheel_velocity_joint";
-  joint_state.position[0] = 0;
+  joint_state.position[0] = this->m_blWheelVelocityJoint->Position(0);
   joint_state.name[1] = "back_right_wheel_velocity_joint";
-  joint_state.position[1] = 0;
+  joint_state.position[1] = this->m_brWheelVelocityJoint->Position(0);
   joint_state.name[2] = "front_left_steer_joint";
-  joint_state.position[2] = flSteeringAngle;
+  joint_state.position[2] = flWheelAngle;
   joint_state.name[3] = "front_left_wheel_velocity_joint";
   joint_state.position[3] = this->m_flWheelVelocityJoint->Position(0);
   joint_state.name[4] = "front_right_steer_joint";
-  joint_state.position[4] = frSteeringAngle;
+  joint_state.position[4] = frWheelAngle;
   joint_state.name[5] = "front_right_wheel_velocity_joint";
   joint_state.position[5] = this->m_frWheelVelocityJoint->Position(0);
 
   this->m_jointPub.publish(joint_state);
 
+  // Publish ground truth pose of the base link in gazebo to TF topic
   geometry_msgs::TransformStamped odom_trans;
-  odom_trans.header.frame_id = "odom";
+  odom_trans.header.frame_id = "ground_truth";
   odom_trans.child_frame_id = "base_link";
   odom_trans.header.stamp = ros::Time::now();
   odom_trans.transform.translation.x = worldPos.X();
@@ -259,12 +265,12 @@ void AckermannControlPlugin::OnUpdate() {
   odom_trans.transform.rotation.y = worldRot.Y();
   odom_trans.transform.rotation.z = worldRot.Z();
   odom_trans.transform.rotation.w = worldRot.W();
-
   this->m_tfBroadcaster.sendTransform(odom_trans);
 
+  // Publish current steering geometry of vehicle
   ackermann_msgs::AckermannSteering currentSteering;
-  currentSteering.front_left_steering_angle = flSteeringAngle;
-  currentSteering.front_right_steering_angle = frSteeringAngle;
+  currentSteering.front_left_steering_angle = flWheelAngle;
+  currentSteering.front_right_steering_angle = frWheelAngle;
   currentSteering.speed = currentLinearSpeed;
   m_steeringPub.publish(currentSteering);
 
@@ -302,7 +308,7 @@ void AckermannControlPlugin::controlCallback(
            std::to_string(m_desiredRightWheelAngle).c_str());
 }
 
-double AckermannControlPlugin::sign(const double num) {
+double AckermannControlPlugin::sign(const double num) const {
   if (num < 0)
     return -1.0;
   if (num > 0)

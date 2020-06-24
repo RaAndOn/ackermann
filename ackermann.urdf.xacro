@@ -15,7 +15,7 @@
   <!-- Constant -->
   <xacro:property name="pi" value="3.1415" />
 
-
+  <!-- Material colors -->
   <material name="blue">
     <color rgba="0 0 0.8 1"/>
   </material>
@@ -53,6 +53,7 @@
     <axis xyz="1 0 0"/>
   </joint>
 
+  <!-- Vehicle chassis -->
   <link name="chassis">
     <visual>
       <geometry>
@@ -68,6 +69,7 @@
     <xacro:box_inertial mass="${chassis_mass}" h="${chassis_height}" w="${chassis_width}" l="${chassis_length}"/>
   </link>
 
+  <!-- xacro for wheels -->
   <xacro:macro name="wheel" params="side location steer">
     <link name="${location}_${side}_wheel">
       <visual>
@@ -104,6 +106,7 @@
     </gazebo>
   </xacro:macro>
 
+  <!-- xacro for linkages -->
   <xacro:macro name="linkage" params="location lon side lat steer">
 
     <link name="${location}_${side}_linkage">

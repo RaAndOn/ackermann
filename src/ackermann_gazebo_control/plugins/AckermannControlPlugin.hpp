@@ -78,6 +78,12 @@ private:
   /// @brief Front right velocity joint
   physics::JointPtr m_frWheelVelocityJoint;
 
+  /// @brief Back left velocity joint
+  physics::JointPtr m_blWheelVelocityJoint;
+
+  /// @brief Back right velocity joint
+  physics::JointPtr m_brWheelVelocityJoint;
+
   /// @brief PID control for the wheel angular velocities
   common::PID m_wheelAngularVelocityPID;
 
@@ -121,6 +127,6 @@ private:
   /// @brief Function to get the sign of a number
   /// @param num is the number whose sign we want
   /// @return the sign of num
-  double sign(const double num);
+  double sign(const double num) const;
 };
 } // namespace gazebo
