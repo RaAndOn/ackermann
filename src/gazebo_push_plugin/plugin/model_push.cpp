@@ -10,11 +10,11 @@ class ModelPush : public ModelPlugin {
 public:
   void Load(physics::ModelPtr parent, sdf::ElementPtr /*sdf*/) {
     // Store the pointer to the model
-    this->model = parent;
+    model = parent;
 
     // Listen to the update event. This event is broadcast every
     // simulation iteration.
-    this->updateConnection = event::Events::ConnectWorldUpdateBegin(
+    updateConnection = event::Events::ConnectWorldUpdateBegin(
         std::bind(&ModelPush::OnUpdate, this));
   }
 
@@ -22,7 +22,7 @@ public:
 public:
   void OnUpdate() {
     // Apply a small linear velocity to the model.
-    this->model->SetLinearVel(ignition::math::Vector3d(.3, 0, 0));
+    model->SetLinearVel(ignition::math::Vector3d(.3, 0, 0));
     ROS_INFO("GO!");
   }
 

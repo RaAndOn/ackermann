@@ -96,8 +96,13 @@ private:
   /// @brief Length between front and rear wheels in meters (Ackermann geometry)
   double m_l;
 
-  /// @brief With between left and right wheels in meters (Ackermann geometry)
+  /// @brief Width between left and right wheels in meters (Ackermann geometry)
   double m_w;
+
+  /// @brief This is purely for RVIZ aesthetics. For some reason the base_link
+  /// and chassis are getting lumped together So to get the base link to start
+  /// at the origin I need to subtract off the inital position
+  ignition::math::Vector3<double> m_groundTruthOrigin;
 
   /// @brief Maximum wheel angular speed
   double m_maxWheelSpeed;
