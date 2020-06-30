@@ -26,7 +26,7 @@
         args="-z 1.0 -unpause -urdf -model robot -param robot_description" respawn="false" output="screen" />
 
   <!-- Publish (some of) robot state for RVIZ visualization -->
-  <node pkg="robot_state_publisher" type="robot_state_publisher"  name="robot_state_publisher">
+  <node pkg="robot_state_publisher" type="robot_state_publisher"  name="robot_state_publisher" output="screen">
     <param name="publish_frequency" type="double" value="30.0" />
   </node>
 
