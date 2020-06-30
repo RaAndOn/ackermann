@@ -10,10 +10,9 @@
   <xacro:property name="chassis_length" value="4.45" />
   <xacro:property name="chassis_width" value="2.7" />
   <xacro:property name="chassis_height" value="1.45" />
-  <xacro:property name="wheel_diam" value="0.7112" />
+  <xacro:property name="wheel_radius" value="${0.7112 / 2}" />
   <xacro:property name="wheel_depth" value="0.2" />
-  <!-- Constant -->
-  <xacro:property name="pi" value="3.1415" />
+  <xacro:property name="lon_dist_between_wheels" value="${chassis_length*2/3}" />
 
   <!-- Material colors -->
   <material name="blue">
@@ -49,7 +48,7 @@
   <joint name="base_link_connection" type="fixed">
     <parent link="base_link"/>
     <child link="chassis"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <origin xyz="${lon_dist_between_wheels/2} 0 ${chassis_height/2}" rpy="0 0 0"/>
     <axis xyz="1 0 0"/>
   </joint>
 
@@ -75,17 +74,17 @@
       <visual>
         <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
         <geometry>
-          <cylinder radius="${wheel_diam/2}" length="${wheel_depth}"/>
+          <cylinder radius="${wheel_radius}" length="${wheel_depth}"/>
         </geometry>
         <material name="black"/>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
         <geometry>
-          <cylinder radius="${wheel_diam/2}" length="${wheel_depth}"/>
+          <cylinder radius="${wheel_radius}" length="${wheel_depth}"/>
         </geometry>
       </collision>
-      <xacro:solid_cylinder_inertial mass="${wheel_mass}" r="${wheel_diam/2}" d="${wheel_depth}"/>
+      <xacro:solid_cylinder_inertial mass="${wheel_mass}" r="${wheel_radius}" d="${wheel_depth}"/>
     </link>
 
     <joint name="${location}_${side}_wheel_velocity_joint" type="continuous">
@@ -125,7 +124,7 @@
         <axis xyz="0 0 1" rpy="0 0 0" />
         <parent link="chassis"/>
         <child link="${location}_${side}_linkage"/>
-        <origin xyz="${chassis_length*lon/3} ${chassis_width*lat/2} -${chassis_height/2}" rpy="0 0 0"/>
+        <origin xyz="${lon_dist_between_wheels*lon/2} ${chassis_width*lat/2} -${chassis_height/2}" rpy="0 0 0"/>
       </joint>
     </xacro:if>
 
@@ -134,7 +133,7 @@
         <axis xyz="0 0 1" rpy="0 0 0" />
         <parent link="chassis"/>
         <child link="${location}_${side}_linkage"/>
-        <origin xyz="${chassis_length*lon/3} ${chassis_width*lat/2} -${chassis_height/2}" rpy="0 0 0"/>
+        <origin xyz="${lon_dist_between_wheels*lon/2} ${chassis_width*lat/2} -${chassis_height/2}" rpy="0 0 0"/>
       </joint>
     </xacro:unless>
 
@@ -157,15 +156,16 @@
     <plugin name="ackermann_control_plugin" filename="libAckermannControlPlugin.so">
       <!-- <chassis>chassis</chassis> -->
       <max_speed>35.7632</max_speed>
-      <wheel_diam>${wheel_diam}</wheel_diam>
       <wheel_angular_velocity_p_gain>1e5</wheel_angular_velocity_p_gain>
       <wheel_angular_velocity_i_gain>0</wheel_angular_velocity_i_gain>
       <wheel_angular_velocity_d_gain>1e3</wheel_angular_velocity_d_gain>
       <wheel_steering_angle_p_gain>1e4</wheel_steering_angle_p_gain>
       <wheel_steering_angle_i_gain>0</wheel_steering_angle_i_gain>
       <wheel_steering_angle_d_gain>1e3</wheel_steering_angle_d_gain>
-      <longitudinal_length_between_wheels>${chassis_length*2/3}</longitudinal_length_between_wheels>
+      <longitudinal_length_between_wheels>${lon_dist_between_wheels}</longitudinal_length_between_wheels>
       <lateral_width_between_wheels>${chassis_width}</lateral_width_between_wheels>
+      <wheel_radius>${wheel_radius}</wheel_radius>
+      <chassis_height>${chassis_height}</chassis_height>
     </plugin>
   </gazebo>
 
