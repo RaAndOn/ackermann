@@ -60,6 +60,22 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
   } else {
     ROS_ERROR("Parameter 'lateral_width_between_wheels' missing");
   }
+  double wheelRadius;
+  if (sdf->HasElement("wheel_radius")) {
+    wheelRadius = sdf->Get<double>("wheel_radius");
+  } else {
+    ROS_ERROR("Parameter 'wheel_radius' missing");
+  }
+  double chassisHeight;
+  if (sdf->HasElement("chassis_height")) {
+    chassisHeight = sdf->Get<double>("chassis_height");
+  } else {
+    ROS_ERROR("Parameter 'chassis_height' missing");
+  }
+
+  // Define Ground Truth Origin for tf broadcast and RVIZ visualization
+  m_groundTruthOrigin = m_baseLink->WorldCoGPose().Pos();
+  m_groundTruthOrigin.Z() = chassisHeight - 2 * wheelRadius;
 
   ros::NodeHandle m_nh(m_robotNamespace);
   m_controlSub = m_nh.subscribe("cmd_vel", 10,
@@ -231,33 +247,36 @@ void AckermannControlPlugin::OnUpdate() {
   joint_state.name.resize(6);
   joint_state.position.resize(6);
   joint_state.name[0] = "back_left_wheel_velocity_joint";
-  joint_state.position[0] = this->m_blWheelVelocityJoint->Position(0);
+  joint_state.position[0] = m_blWheelVelocityJoint->Position(0);
   joint_state.name[1] = "back_right_wheel_velocity_joint";
-  joint_state.position[1] = this->m_brWheelVelocityJoint->Position(0);
+  joint_state.position[1] = m_brWheelVelocityJoint->Position(0);
   joint_state.name[2] = "front_left_steer_joint";
   joint_state.position[2] = flWheelAngle;
   joint_state.name[3] = "front_left_wheel_velocity_joint";
-  joint_state.position[3] = this->m_flWheelVelocityJoint->Position(0);
+  joint_state.position[3] = m_flWheelVelocityJoint->Position(0);
   joint_state.name[4] = "front_right_steer_joint";
   joint_state.position[4] = frWheelAngle;
   joint_state.name[5] = "front_right_wheel_velocity_joint";
-  joint_state.position[5] = this->m_frWheelVelocityJoint->Position(0);
+  joint_state.position[5] = m_frWheelVelocityJoint->Position(0);
 
-  this->m_jointPub.publish(joint_state);
+  m_jointPub.publish(joint_state);
 
   // Publish ground truth pose of the base link in gazebo to TF topic
-  geometry_msgs::TransformStamped odom_trans;
-  odom_trans.header.frame_id = "ground_truth";
-  odom_trans.child_frame_id = "base_link";
-  odom_trans.header.stamp = ros::Time::now();
-  odom_trans.transform.translation.x = worldPos.X();
-  odom_trans.transform.translation.y = worldPos.Y();
-  odom_trans.transform.translation.z = worldPos.Z();
-  odom_trans.transform.rotation.x = worldRot.X();
-  odom_trans.transform.rotation.y = worldRot.Y();
-  odom_trans.transform.rotation.z = worldRot.Z();
-  odom_trans.transform.rotation.w = worldRot.W();
-  this->m_tfBroadcaster.sendTransform(odom_trans);
+  geometry_msgs::TransformStamped ground_truth_trans;
+  ground_truth_trans.header.frame_id = "ground_truth";
+  ground_truth_trans.child_frame_id = "base_link";
+  ground_truth_trans.header.stamp = ros::Time::now();
+  ground_truth_trans.transform.translation.x =
+      worldPos.X() - m_groundTruthOrigin.X();
+  ground_truth_trans.transform.translation.y =
+      worldPos.Y() - m_groundTruthOrigin.Y();
+  ground_truth_trans.transform.translation.z =
+      worldPos.Z() - m_groundTruthOrigin.Z();
+  ground_truth_trans.transform.rotation.x = worldRot.X();
+  ground_truth_trans.transform.rotation.y = worldRot.Y();
+  ground_truth_trans.transform.rotation.z = worldRot.Z();
+  ground_truth_trans.transform.rotation.w = worldRot.W();
+  m_tfBroadcaster.sendTransform(ground_truth_trans);
 
   // Publish current steering geometry of vehicle
   ackermann_msgs::AckermannSteering currentSteering;
