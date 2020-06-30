@@ -1,0 +1,13 @@
+<launch>
+  <arg name="model" default="$(find ackermann_project)/config/ackermann.urdf.xacro"/>
+  <arg name="rvizconfig" default="$(find ackermann_project)/config/ackermann.rviz" />
+
+  <include file="$(find ackermann_project)/launch/gazebo.launch">
+    <arg name="model" value="$(arg model)" />
+  </include>
+
+  <node name="ackermann_planner_node" pkg="ackermann_planner" type="ackermann_planner_node" output=
+  "screen"/>
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" />
+</launch>

@@ -1,6 +1,0 @@
-type: "position_controllers/JointPositionController"
-joint: front_left_steer_joint
-# pid:
-#   p: 5.0
-#   i: 20.0
-#   i_clamp: 100.0
