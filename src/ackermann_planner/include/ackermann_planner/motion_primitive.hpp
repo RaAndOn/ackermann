@@ -1,90 +1,36 @@
-#include <cmath>
 #include <vector>
+
+/// @brief This struct defines a single displacement which when applied to a
+/// vehicle state is a motion primitive. This only considers spacial
+/// displacements (x, y, theta) and ingores velocity
+struct Primitive {
+  const double m_deltaX;
+  const double m_deltaY;
+  const double m_deltaTheta;
+  Primitive(const double deltaX, const double deltaY, const double deltaTheta)
+      : m_deltaX{deltaX}, m_deltaY{deltaY}, m_deltaTheta{deltaTheta} {}
+};
 
 class MotionPrimitive {
 public:
   MotionPrimitive(const double wheelBase, const double velocity,
-                  const double maxSteerAngle, const double dt)
-      : m_wheelBase{wheelBase} {
-    m_distance = velocity * dt;
-  }
+                  const double maxSteerAngle, const double dt,
+                  const double angleDiscretization,
+                  const int numberOfPrimitives);
 
   ~MotionPrimitive();
 
-  /*
-    The diagrams below explain the math used to calculate the turning radius.
-    Also look at the `turning_radius.pdf` for more detailed descriptions.
+  /// @brief This function calculates the expected changes to the vehicles state
+  /// given the steering angle and the other paramters set at object creation
+  /// @param steerAngle the steer angle of the vehicle
+  void calculateMotionPrimitive(const double steerAngle);
 
-    Below is a diagram of the turning geometry of a bicycle model.
-    The smaller inner circle is formed by the fixed back wheel.
-    The larger outer circle is formed by the steerable front wheel.
-
-                 |----W----|
-           , - ~ ~ ~ - ,          /
-       , '               ' ,    /a
-     ,           _ _       \\ /----
-    ,        , -|_ _|- , /R \\
-   ,       '     r|    /'     ,
-   ,      '       |a /   '    ,
-   ,      '              '    ,
-    ,      ' , _ _ _ , '     ,
-     ,                      ,
-       ,                  '
-         ' - , _ _ _ ,  '
-
-    W - wheelBase
-    r - radius of the rear wheel turning circle
-    R - radius of the front wheel turning circle
-    a - steering angle of the front wheel
-
-    This code uses the distance traveled by the rear wheel for the motion
-   primatives:
-
-    r = W / tan(a)
-
-    arcLength(m_distance) = arcMeasure(theta) * circleRadius(r)
-    arcMeasure(theta) = arcLength / r
-
-  Geometry for motion primitive displacements
-          , - ~ ~ ~ - ,
-      , '           /|  ' ,
-    ,              / |      ,
-   ,              /  | dy    ,
-  ,              /_t_|________,
-  ,                    dx     ,
-  ,                           ,
-   ,                         ,
-    ,                       ,
-      ,                  , '
-        ' - , _ _ _ ,  '
-
-    cos(t) = dx / r
-    dx = r * cos(t)
-
-    sin(t) = dy / r
-    dy = r * sin(t)
-
-    dt = t
- */
-  void calculateMotionPrimitive(const double steerAngle) {
-    // Radius of the circle made by the rear wheel
-    double turningRadius{m_wheelBase / std::tan(steerAngle)};
-    double arcMeasure{m_distance / turningRadius};
-    double deltaX = m_distance * std::cos(arcMeasure);
-    double deltaY = m_distance * std::sin(arcMeasure);
-    double deltaTheta = arcMeasure;
-
-    m_deltaX.push_back(deltaX);
-    m_deltaY.push_back(deltaY);
-    m_deltaTheta.push_back(deltaTheta);
-  }
+  std::vector<Primitive> getMotionPrimitives();
 
 private:
   int m_numberOfPrimitives;
-  double m_angleDiscritization;
+  double m_angleDiscretization;
   double m_wheelBase;
-  double m_distance;
-  std::vector<double> m_deltaX;
-  std::vector<double> m_deltaY;
-  std::vector<double> m_deltaTheta;
-}
+  double m_arcLength;
+  std::vector<Primitive> m_primitiveVector;
+};

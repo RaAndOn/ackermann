@@ -12,6 +12,11 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
   m_pubVisualization = m_publicNH.advertise<visualization_msgs::MarkerArray>(
       "visualization_marker", 0);
 
+  m_markerID = 0;
+
+  MotionPrimitive motionPrimitive{2, 5, .7, .1, 22.5, 4};
+  m_motionPrimitivesVector = motionPrimitive.getMotionPrimitives();
+
   initializeMarkers();
 
   // Initialize loop terms
@@ -51,8 +56,28 @@ void LatticePlanner::initializeMarkers() {
 
 void LatticePlanner::visualizationLoopTEST() {
   visualization_msgs::MarkerArray markerArray;
-  addMarkerToArray(markerArray, {0, 1, 1, 0, Gear::FORWARD});
-  addMarkerToArray(markerArray, {1, 2, 1, .3, Gear::REVERSE});
+  State state{m_markerID, 0, 0, 0, Gear::FORWARD};
+  addMarkerToArray(markerArray, state);
+  ++m_markerID;
+
+  for (int i = 1; i < 150; ++i) {
+    state.m_id = i;
+    state.m_x +=
+        m_motionPrimitivesVector[1].m_deltaX * std::cos(state.m_theta) -
+        m_motionPrimitivesVector[1].m_deltaY * std::sin(state.m_theta);
+    state.m_y +=
+        m_motionPrimitivesVector[1].m_deltaX * std::sin(state.m_theta) +
+        m_motionPrimitivesVector[1].m_deltaY * std::cos(state.m_theta);
+    state.m_theta += m_motionPrimitivesVector[1].m_deltaTheta;
+    /// TODO: Write wrapToPi
+    if (state.m_theta >= M_PI) {
+      state.m_theta = state.m_theta - 2 * M_PI;
+    } else if (state.m_theta < -M_PI) {
+      state.m_theta = 2 * M_PI + state.m_theta;
+    }
+    // ROS_INFO("Steer Angle %s", std::to_string(state.m_theta).c_str());
+    addMarkerToArray(markerArray, state);
+  }
   m_pubVisualization.publish(markerArray);
 }
 
