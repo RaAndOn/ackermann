@@ -3,16 +3,26 @@
 
   <!-- Dimensions taken 2019 from Chevy Cruze https://www.caranddriver.com/chevrolet/cruze/specs -->
 
+  <!-- Evaluate any parameters passed in and make them properties, which can be used for math operations -->
+  
   <!-- Mass in kilograms -->
-  <xacro:property name="chassis_mass" value="1351" />
-  <xacro:property name="wheel_mass" value="11" />
+  <xacro:arg name="chassis_mass" default="1351" />
+  <xacro:property name="chassis_mass" value="$(arg chassis_mass)" />
+  <xacro:arg name="wheel_mass" default="11" />
+  <xacro:property name="wheel_mass" value="$(arg wheel_mass)" />
   <!-- Length in meters -->
-  <xacro:property name="chassis_length" value="4.45" />
-  <xacro:property name="chassis_width" value="2.7" />
-  <xacro:property name="chassis_height" value="1.45" />
-  <xacro:property name="wheel_radius" value="${0.7112 / 2}" />
-  <xacro:property name="wheel_depth" value="0.2" />
-  <xacro:property name="lon_dist_between_wheels" value="${chassis_length*2/3}" />
+  <xacro:arg name="chassis_length" default="4.45"/>
+  <xacro:property name="chassis_length" value="$(arg chassis_length)" />
+  <xacro:arg name="chassis_width" default="2.7" />
+  <xacro:property name="chassis_width" value="$(arg chassis_width)" />
+  <xacro:arg name="chassis_height" default="1.45" />
+  <xacro:property name="chassis_height" value="$(arg chassis_height)" />
+  <xacro:arg name="wheel_radius" default="0.3556" />
+  <xacro:property name="wheel_radius" value="$(arg wheel_radius)" />
+  <xacro:arg name="wheel_depth" default="0.2" />
+  <xacro:property name="wheel_depth" value="$(arg wheel_depth)" />
+  <xacro:arg name="lon_dist_between_wheels" default="3" />
+  <xacro:property name="lon_dist_between_wheels" value="$(arg lon_dist_between_wheels)" />
 
   <!-- Material colors -->
   <material name="blue">
