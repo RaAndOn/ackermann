@@ -58,22 +58,30 @@ void LatticePlanner::initializeMarkers() {
 
 void LatticePlanner::visualizationLoopTEST() {
   visualization_msgs::MarkerArray markerArray;
-  State state{m_markerID, 0, 0, 0, Gear::FORWARD};
-  addMarkerToArray(markerArray, state);
-  ++m_markerID;
+  // State state{m_markerID, 0, 0, 0, Gear::FORWARD};
+  // addMarkerToArray(markerArray, state);
+  // ++m_markerID;
 
-  for (int i = 1; i < 150; ++i) {
-    state.m_id = i;
-    state.m_x +=
-        m_motionPrimitivesVector[1].m_deltaX * std::cos(state.m_theta) -
-        m_motionPrimitivesVector[1].m_deltaY * std::sin(state.m_theta);
-    state.m_y +=
-        m_motionPrimitivesVector[1].m_deltaX * std::sin(state.m_theta) +
-        m_motionPrimitivesVector[1].m_deltaY * std::cos(state.m_theta);
-    state.m_theta = ackermann::wrapToPi(
-        state.m_theta + m_motionPrimitivesVector[1].m_deltaTheta);
-    // ROS_INFO("Steer Angle %s", std::to_string(state.m_theta).c_str());
+  // for (int i = 1; i < 150; ++i) {
+  //   state.m_id = i;
+  //   state.m_x +=
+  //       m_motionPrimitivesVector[1].m_deltaX * std::cos(state.m_theta) -
+  //       m_motionPrimitivesVector[1].m_deltaY * std::sin(state.m_theta);
+  //   state.m_y +=
+  //       m_motionPrimitivesVector[1].m_deltaX * std::sin(state.m_theta) +
+  //       m_motionPrimitivesVector[1].m_deltaY * std::cos(state.m_theta);
+  //   state.m_theta = ackermann::wrapToPi(
+  //       state.m_theta + m_motionPrimitivesVector[1].m_deltaTheta);
+  //   // ROS_INFO("Steer Angle %s", std::to_string(state.m_theta).c_str());
+  //   addMarkerToArray(markerArray, state);
+  // }
+
+  for (const auto primitive : m_motionPrimitivesVector) {
+    Gear gear = (primitive.m_deltaX > 0) ? Gear::FORWARD : Gear::REVERSE;
+    State state{m_markerID, primitive.m_deltaX, primitive.m_deltaY,
+                primitive.m_deltaTheta, gear};
     addMarkerToArray(markerArray, state);
+    ++m_markerID;
   }
   m_pubVisualization.publish(markerArray);
 }

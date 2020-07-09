@@ -23,7 +23,8 @@ public:
   /// @brief This function calculates the expected changes to the vehicles state
   /// given the steering angle and the other paramters set at object creation
   /// @param steerAngle the steer angle of the vehicle
-  void calculateMotionPrimitive(const double steerAngle);
+  /// @param forward indicates whether the vehicle is moving forward or reverse
+  void calculateMotionPrimitive(const double steerAngle, const bool forward);
 
   std::vector<Primitive> getMotionPrimitives();
 

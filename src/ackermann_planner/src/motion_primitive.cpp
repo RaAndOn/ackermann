@@ -18,9 +18,12 @@ MotionPrimitive::MotionPrimitive(const double wheelBase, const double velocity,
     m_numberOfPrimitives = m_numberOfPrimitives + 1;
   }
 
-  calculateMotionPrimitive(0);
-  calculateMotionPrimitive(M_PI / 16);
-  calculateMotionPrimitive(-M_PI / 16);
+  calculateMotionPrimitive(0, true);
+  calculateMotionPrimitive(M_PI / 16, true);
+  calculateMotionPrimitive(-M_PI / 16, true);
+  calculateMotionPrimitive(0, false);
+  calculateMotionPrimitive(M_PI / 16, false);
+  calculateMotionPrimitive(-M_PI / 16, false);
 }
 
 MotionPrimitive::~MotionPrimitive() = default;
@@ -80,14 +83,16 @@ Geometry for motion primitive displacements
 
   dt = t
 */
-void MotionPrimitive::calculateMotionPrimitive(const double steerAngle) {
-  /// TODO: Figure out reversing
+void MotionPrimitive::calculateMotionPrimitive(const double steerAngle,
+                                               const bool forward) {
+  // Modify the primitive based on the gear of the vehicle
+  int gear = forward ? 1 : -1;
   // Radius of the circle made by the rear wheel
   double turningRadius{m_wheelBase / std::tan(steerAngle)};
   double arcMeasure{m_arcLength / turningRadius};
-  double deltaX = m_arcLength * std::cos(arcMeasure);
+  double deltaX = gear * m_arcLength * std::cos(arcMeasure);
   double deltaY = m_arcLength * std::sin(arcMeasure);
-  double deltaTheta = arcMeasure;
+  double deltaTheta = gear * arcMeasure;
 
   m_primitiveVector.push_back(Primitive{deltaX, deltaY, deltaTheta});
 }
