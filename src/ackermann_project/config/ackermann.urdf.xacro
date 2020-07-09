@@ -21,8 +21,8 @@
   <xacro:property name="wheel_radius" value="$(arg wheel_radius)" />
   <xacro:arg name="wheel_depth" default="0.2" />
   <xacro:property name="wheel_depth" value="$(arg wheel_depth)" />
-  <xacro:arg name="lon_dist_between_wheels" default="3" />
-  <xacro:property name="lon_dist_between_wheels" value="$(arg lon_dist_between_wheels)" />
+  <xacro:arg name="wheelbase" default="3" />
+  <xacro:property name="wheelbase" value="$(arg wheelbase)" />
 
   <!-- Material colors -->
   <material name="blue">
@@ -58,7 +58,7 @@
   <joint name="base_link_connection" type="fixed">
     <parent link="base_link"/>
     <child link="chassis"/>
-    <origin xyz="${lon_dist_between_wheels/2} 0 ${chassis_height/2}" rpy="0 0 0"/>
+    <origin xyz="${wheelbase/2} 0 ${chassis_height/2}" rpy="0 0 0"/>
     <axis xyz="1 0 0"/>
   </joint>
 
@@ -134,7 +134,7 @@
         <axis xyz="0 0 1" rpy="0 0 0" />
         <parent link="chassis"/>
         <child link="${location}_${side}_linkage"/>
-        <origin xyz="${lon_dist_between_wheels*lon/2} ${chassis_width*lat/2} -${chassis_height/2}" rpy="0 0 0"/>
+        <origin xyz="${wheelbase*lon/2} ${chassis_width*lat/2} -${chassis_height/2}" rpy="0 0 0"/>
       </joint>
     </xacro:if>
 
@@ -143,7 +143,7 @@
         <axis xyz="0 0 1" rpy="0 0 0" />
         <parent link="chassis"/>
         <child link="${location}_${side}_linkage"/>
-        <origin xyz="${lon_dist_between_wheels*lon/2} ${chassis_width*lat/2} -${chassis_height/2}" rpy="0 0 0"/>
+        <origin xyz="${wheelbase*lon/2} ${chassis_width*lat/2} -${chassis_height/2}" rpy="0 0 0"/>
       </joint>
     </xacro:unless>
 
@@ -172,7 +172,7 @@
       <wheel_steering_angle_p_gain>1e4</wheel_steering_angle_p_gain>
       <wheel_steering_angle_i_gain>0</wheel_steering_angle_i_gain>
       <wheel_steering_angle_d_gain>1e3</wheel_steering_angle_d_gain>
-      <longitudinal_length_between_wheels>${lon_dist_between_wheels}</longitudinal_length_between_wheels>
+      <longitudinal_length_between_wheels>${wheelbase}</longitudinal_length_between_wheels>
       <lateral_width_between_wheels>${chassis_width}</lateral_width_between_wheels>
       <wheel_radius>${wheel_radius}</wheel_radius>
       <chassis_height>${chassis_height}</chassis_height>

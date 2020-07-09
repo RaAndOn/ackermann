@@ -17,7 +17,7 @@
   <arg name="chassis_height" default="1.45" />
   <arg name="wheel_radius" default="0.3556" />
   <arg name="wheel_depth" default="0.2" />
-  <arg name="lon_dist_between_wheels" default="3" />
+  <arg name="wheelbase" default="3" />
 
   <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -36,7 +36,7 @@
                                                               chassis_height:=$(arg chassis_height)
                                                               wheel_radius:=$(arg wheel_radius)
                                                               wheel_depth:=$(arg wheel_depth)
-                                                              lon_dist_between_wheels:=$(arg lon_dist_between_wheels)" />
+                                                              wheelbase:=$(arg wheelbase)" />
 
   <!-- Push robot_description to factory and spawn robot in gazebo -->
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"

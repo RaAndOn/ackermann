@@ -5,7 +5,7 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
                                ros::NodeHandle &publicNH)
     : m_privateNH{privateNH}, m_publicNH{publicNH} {
   // Get parameters from Param server
-  //   privateNH_.param("kp_angular", kpAngular_, 1.0);
+  privateNH_.param("wheelbase", m_wheelbase, 3.0);
   //   privateNH_.param<std::string>("robot_frame", m_robotFrame, "base_link");
   //   privateNH_.param<std::string>("world_frame", m_worldFrame, "map");
   // Set publishers and subscribers
@@ -14,7 +14,7 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
 
   m_markerID = 0;
 
-  MotionPrimitive motionPrimitive{2, 5, .7, .1, 22.5, 4};
+  MotionPrimitive motionPrimitive{m_wheelBase, 5, .7, .1, 22.5, 4};
   m_motionPrimitivesVector = motionPrimitive.getMotionPrimitives();
 
   initializeMarkers();
