@@ -1,4 +1,5 @@
 <launch>
+  <!-- Vehicle Arguments -->
   <!-- Mass in kilograms -->
   <arg name="chassis_mass" default="1351" />
   <arg name="wheel_mass" default="11" />
@@ -9,6 +10,10 @@
   <arg name="wheel_radius" default="0.3556" />
   <arg name="wheel_depth" default="0.2" />
   <arg name="wheelbase" default="3" />
+
+  <!-- Planner Arguments -->
+  <arg name="planner_dt" default=".1" />
+
 
   <arg name="model" default="$(find ackermann_project)/config/ackermann.urdf.xacro"/>
   <arg name="rvizconfig" default="$(find ackermann_project)/config/ackermann.rviz" />
@@ -28,6 +33,7 @@
   <node name="ackermann_planner_node" pkg="ackermann_planner" type="ackermann_planner_node" output=
   "screen">
     <param name="wheelbase" type="double" value="$(arg wheelbase)" />
+    <param name="dt" type="double" value="$(arg planner_dt)" />
   </node>
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" />

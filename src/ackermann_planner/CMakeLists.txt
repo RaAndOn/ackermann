@@ -10,6 +10,7 @@ project(ackermann_planner)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  ackermann_project
 )
 
 ## System dependencies are found with CMake's conventions

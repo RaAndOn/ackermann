@@ -1,20 +1,22 @@
 #include <ackermann_planner/lattice_planner.hpp>
+#include <ackermann_project/ackermann_utils.hpp>
 
 // Point x -- east, y -- north and z -- up yaw
 LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
                                ros::NodeHandle &publicNH)
     : m_privateNH{privateNH}, m_publicNH{publicNH} {
   // Get parameters from Param server
-  privateNH_.param("wheelbase", m_wheelbase, 3.0);
-  //   privateNH_.param<std::string>("robot_frame", m_robotFrame, "base_link");
-  //   privateNH_.param<std::string>("world_frame", m_worldFrame, "map");
+  m_privateNH.param("wheelbase", m_wheelbase, 3.0);
+  m_privateNH.param("dt", m_dt, .1);
+  //   m_privateNH.param<std::string>("robot_frame", m_robotFrame, "base_link");
+  //   m_privateNH.param<std::string>("world_frame", m_worldFrame, "map");
   // Set publishers and subscribers
   m_pubVisualization = m_publicNH.advertise<visualization_msgs::MarkerArray>(
       "visualization_marker", 0);
 
   m_markerID = 0;
 
-  MotionPrimitive motionPrimitive{m_wheelBase, 5, .7, .1, 22.5, 4};
+  MotionPrimitive motionPrimitive{m_wheelbase, 5, .7, m_dt, 22.5, 4};
   m_motionPrimitivesVector = motionPrimitive.getMotionPrimitives();
 
   initializeMarkers();
@@ -68,13 +70,8 @@ void LatticePlanner::visualizationLoopTEST() {
     state.m_y +=
         m_motionPrimitivesVector[1].m_deltaX * std::sin(state.m_theta) +
         m_motionPrimitivesVector[1].m_deltaY * std::cos(state.m_theta);
-    state.m_theta += m_motionPrimitivesVector[1].m_deltaTheta;
-    /// TODO: Write wrapToPi
-    if (state.m_theta >= M_PI) {
-      state.m_theta = state.m_theta - 2 * M_PI;
-    } else if (state.m_theta < -M_PI) {
-      state.m_theta = 2 * M_PI + state.m_theta;
-    }
+    state.m_theta = ackermann::wrapToPi(
+        state.m_theta + m_motionPrimitivesVector[1].m_deltaTheta);
     // ROS_INFO("Steer Angle %s", std::to_string(state.m_theta).c_str());
     addMarkerToArray(markerArray, state);
   }

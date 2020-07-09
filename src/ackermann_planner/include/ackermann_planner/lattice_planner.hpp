@@ -39,6 +39,8 @@ private:
   std::vector<Primitive> m_motionPrimitivesVector;
 
   double m_wheelbase;
+  double m_dt;
+
   int m_markerID;
 
   /// @brief This function initializes the reverse and forward markers so they
