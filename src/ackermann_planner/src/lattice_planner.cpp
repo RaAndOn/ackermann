@@ -8,22 +8,21 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
   // Get parameters from Param server
   m_privateNH.param("wheelbase", m_wheelbase, 3.0);
   m_privateNH.param("dt", m_dt, .1);
-  //   m_privateNH.param<std::string>("robot_frame", m_robotFrame, "base_link");
-  //   m_privateNH.param<std::string>("world_frame", m_worldFrame, "map");
+  m_privateNH.param("discretization_degrees", m_discretizationDegrees, 22.5);
+  m_privateNH.param("steering_increments", m_steeringIncrements, 1);
+  m_privateNH.param("velocity", m_velocity, 5.0);
   // Set publishers and subscribers
   m_pubVisualization = m_publicNH.advertise<visualization_msgs::MarkerArray>(
       "visualization_marker", 0);
 
   m_markerID = 0;
 
-  MotionPrimitive motionPrimitive{m_wheelbase, 5, .7, m_dt, 22.5, 4};
+  MotionPrimitive motionPrimitive{m_wheelbase, m_velocity, m_dt,
+                                  m_discretizationDegrees,
+                                  m_steeringIncrements};
   m_motionPrimitivesVector = motionPrimitive.getMotionPrimitives();
 
   initializeMarkers();
-
-  // Initialize loop terms
-  //   setLoopTerms(nav_msgs::Path{});
-  //   pubPathStatus_.publish(goalPath_);
 }
 
 LatticePlanner::~LatticePlanner() = default;

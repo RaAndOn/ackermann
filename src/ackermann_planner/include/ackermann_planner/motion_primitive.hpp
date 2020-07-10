@@ -14,8 +14,7 @@ struct Primitive {
 class MotionPrimitive {
 public:
   MotionPrimitive(const double wheelBase, const double velocity,
-                  const double maxSteerAngle, const double dt,
-                  const double angleDiscretization,
+                  const double dt, const double angleDiscretization,
                   const int numberOfPrimitives);
 
   ~MotionPrimitive();
@@ -29,7 +28,6 @@ public:
   std::vector<Primitive> getMotionPrimitives();
 
 private:
-  int m_numberOfPrimitives;
   double m_angleDiscretization;
   double m_wheelBase;
   double m_arcLength;

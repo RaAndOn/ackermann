@@ -5,25 +5,25 @@
 #include <ackermann_planner/motion_primitive.hpp>
 
 MotionPrimitive::MotionPrimitive(const double wheelBase, const double velocity,
-                                 const double maxSteerAngle, const double dt,
+                                 const double dt,
                                  const double angleDiscretization,
-                                 const int numberOfPrimitives)
-    : m_wheelBase{wheelBase}, m_angleDiscretization{angleDiscretization},
-      m_numberOfPrimitives{numberOfPrimitives} {
+                                 const int numberOfDiscretizations)
+    : m_wheelBase{wheelBase}, m_angleDiscretization{M_PI * angleDiscretization /
+                                                    180},
+      m_arcLength{velocity * dt} {
   // Assume vehicle moves the same speed and distance regardless of steer angle
-  m_arcLength = velocity * dt;
-  //
-  if (numberOfPrimitives % 2 == 0) {
-    ROS_INFO("numberOfPrimitives must be odd, adding one to provided number");
-    m_numberOfPrimitives = m_numberOfPrimitives + 1;
-  }
+  ROS_INFO("Velocity: %s", std::to_string(velocity).c_str());
+  ROS_INFO("dt: %s", std::to_string(dt).c_str());
 
   calculateMotionPrimitive(0, true);
-  calculateMotionPrimitive(M_PI / 16, true);
-  calculateMotionPrimitive(-M_PI / 16, true);
   calculateMotionPrimitive(0, false);
-  calculateMotionPrimitive(M_PI / 16, false);
-  calculateMotionPrimitive(-M_PI / 16, false);
+  for (int i = 1; i <= numberOfDiscretizations; ++i) {
+    double steerAngle{m_angleDiscretization * i};
+    calculateMotionPrimitive(steerAngle, true);
+    calculateMotionPrimitive(-steerAngle, true);
+    calculateMotionPrimitive(steerAngle, false);
+    calculateMotionPrimitive(-steerAngle, false);
+  }
 }
 
 MotionPrimitive::~MotionPrimitive() = default;

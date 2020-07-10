@@ -40,6 +40,9 @@ private:
 
   double m_wheelbase;
   double m_dt;
+  double m_discretizationDegrees;
+  double m_velocity;
+  int m_steeringIncrements;
 
   int m_markerID;
 

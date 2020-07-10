@@ -13,6 +13,9 @@
 
   <!-- Planner Arguments -->
   <arg name="planner_dt" default=".1" />
+  <arg name="planner_discretization_degrees" default="22.5" />
+  <arg name="planner_steering_increments" default="1" />
+  <arg name="planner_velocity" default="5.0" /> <!-- m/s -->
 
 
   <arg name="model" default="$(find ackermann_project)/config/ackermann.urdf.xacro"/>
@@ -34,6 +37,9 @@
   "screen">
     <param name="wheelbase" type="double" value="$(arg wheelbase)" />
     <param name="dt" type="double" value="$(arg planner_dt)" />
+    <param name="discretization_degrees" type="double" value="$(arg planner_discretization_degrees)" />
+    <param name="steering_increments" type="int" value="$(arg planner_steering_increments)" />
+    <param name="velocity" type="double" value="$(arg planner_velocity)" />
   </node>
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" />
