@@ -57,6 +57,7 @@ void LatticePlanner::initializeMarkers() {
 
 void LatticePlanner::visualizationLoopTEST() {
   visualization_msgs::MarkerArray markerArray;
+  m_markerID = 0;
   // State state{m_markerID, 0, 0, 0, Gear::FORWARD};
   // addMarkerToArray(markerArray, state);
   // ++m_markerID;
@@ -75,13 +76,30 @@ void LatticePlanner::visualizationLoopTEST() {
   //   addMarkerToArray(markerArray, state);
   // }
 
-  for (const auto primitive : m_motionPrimitivesVector) {
-    Gear gear = (primitive.m_deltaX > 0) ? Gear::FORWARD : Gear::REVERSE;
-    State state{m_markerID, primitive.m_deltaX, primitive.m_deltaY,
-                primitive.m_deltaTheta, gear};
-    addMarkerToArray(markerArray, state);
-    ++m_markerID;
+  // for (const auto primitive : m_motionPrimitivesVector) {
+  //   Gear gear = (primitive.m_deltaX > 0) ? Gear::FORWARD : Gear::REVERSE;
+  //   State state{primitive.m_deltaX, primitive.m_deltaY,
+  //   primitive.m_deltaTheta,
+  //               gear};
+  //   addMarkerToArray(markerArray, state);
+  //   ++m_markerID;
+  // }
+
+  AStar planner{m_motionPrimitivesVector, 0.5, 15, 0.5, 15};
+
+  State startState{0, 0, 0, Gear::FORWARD};
+  State goalState{20, 0, 0, Gear::FORWARD};
+
+  auto path = planner.astar(startState, goalState, 1, "Euclidean", "Euclidean");
+  if (path) {
+    for (const auto &state : path.get()) {
+      addMarkerToArray(markerArray, state);
+      ++m_markerID;
+    }
+  } else {
+    ROS_INFO("No path found");
   }
+
   m_pubVisualization.publish(markerArray);
 }
 
@@ -97,7 +115,7 @@ void LatticePlanner::addMarkerToArray(
     ROS_ERROR("Member variable 'm_gear' of state was not set properly");
   }
   // Set Marker specifics
-  marker.id = state.m_id;
+  marker.id = markerArray.markers.size();
   marker.pose.position.x = state.m_x;
   marker.pose.position.y = state.m_y;
   marker.pose.orientation.z = state.m_theta;

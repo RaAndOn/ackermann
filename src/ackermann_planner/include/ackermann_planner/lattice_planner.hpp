@@ -5,20 +5,9 @@
 
 #include <visualization_msgs/MarkerArray.h>
 
+#include <ackermann_planner/a_star.hpp>
 #include <ackermann_planner/motion_primitive.hpp>
-
-enum Gear { FORWARD, REVERSE };
-
-struct State {
-  int m_id;
-  double m_x;
-  double m_y;
-  double m_theta;
-  Gear m_gear;
-  State(const int id, const double x, const double y, const double theta,
-        const Gear gear)
-      : m_id{id}, m_x{x}, m_y{y}, m_theta{theta}, m_gear{gear} {}
-};
+#include <ackermann_planner/planner_utils.hpp>
 
 class LatticePlanner {
 public:

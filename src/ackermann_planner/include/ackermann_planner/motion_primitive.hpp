@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 
 /// @brief This struct defines a single displacement which when applied to a
