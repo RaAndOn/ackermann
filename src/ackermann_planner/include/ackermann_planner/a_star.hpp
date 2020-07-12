@@ -78,13 +78,12 @@ public:
   /// @brief This function computes a unique index for a state
   /// The state is rounded based on the resolution
   inline NodeIndex hashFunction(const State &state) {
-    const int thetaDegrees{
-        static_cast<int>(state.m_theta / m_angularResolution)};
+    const int theta{static_cast<int>(state.m_theta / m_angularResolution)};
     const int x{static_cast<int>(state.m_x / m_distanceResolution)};
-    const int y{static_cast<int>(state.m_x / m_distanceResolution)};
+    const int y{static_cast<int>(state.m_y / m_distanceResolution)};
 
     const NodeIndex index1{signedSzudzikPair(x, y)};
-    const NodeIndex index2{signedSzudzikPair(index1, thetaDegrees)};
+    const NodeIndex index2{signedSzudzikPair(index1, theta)};
     if (index2 < 0) {
       ROS_ERROR("ERROR: hashFunction Calculated "
                 "Node index is negative, "
@@ -136,11 +135,9 @@ private:
   inline FCost addFCost(const Node &node) {
     const FCost fCost{node.m_gCost +
                       m_heuristicFunction(node.m_state) * m_epsilon};
-    ROS_INFO("FCost: %s", std::to_string(fCost).c_str());
     if (fCost < 0) {
-      // std::cout << "\nNote: The calculated FCost was negative, returning "
-      //              "INT_MAX";
-      return INT_MAX;
+      ROS_ERROR("ERROR: FCost was negative throwing");
+      throw "";
     }
     return fCost;
   }

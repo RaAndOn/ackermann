@@ -1,3 +1,5 @@
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+
 #include <ackermann_planner/lattice_planner.hpp>
 #include <ackermann_project/ackermann_utils.hpp>
 
@@ -85,10 +87,10 @@ void LatticePlanner::visualizationLoopTEST() {
   //   ++m_markerID;
   // }
 
-  AStar planner{m_motionPrimitivesVector, 0.5, 15, 0.5, 15};
+  AStar planner{m_motionPrimitivesVector, 1.0, 360, 0.01, 1};
 
   State startState{0, 0, 0, Gear::FORWARD};
-  State goalState{20, 0, 0, Gear::FORWARD};
+  State goalState{10, 20, M_PI, Gear::FORWARD};
 
   auto path = planner.astar(startState, goalState, 1, "Euclidean", "Euclidean");
   if (path) {
@@ -118,7 +120,10 @@ void LatticePlanner::addMarkerToArray(
   marker.id = markerArray.markers.size();
   marker.pose.position.x = state.m_x;
   marker.pose.position.y = state.m_y;
-  marker.pose.orientation.z = state.m_theta;
+
+  tf2::Quaternion quat;
+  quat.setRPY(0, 0, state.m_theta);
+  tf2::convert(quat, marker.pose.orientation);
 
   // Add marker to marker array
   markerArray.markers.push_back(marker);

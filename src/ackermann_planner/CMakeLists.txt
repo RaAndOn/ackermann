@@ -10,6 +10,7 @@ project(ackermann_planner)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  tf2_ros
   ackermann_project
 )
 

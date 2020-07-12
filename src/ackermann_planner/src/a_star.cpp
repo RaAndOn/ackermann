@@ -10,9 +10,9 @@ AStar::AStar(const std::vector<Primitive> &primitives,
              const double distanceResolutionMeters,
              const double angularResolutionDegrees)
     : m_primitives{primitives}, m_distanceThreshold{distanceThresholdMeters},
-      m_angularThreshold{180 * angularThresholdDegrees / M_PI},
+      m_angularThreshold{M_PI * angularThresholdDegrees / 180},
       m_distanceResolution{distanceResolutionMeters},
-      m_angularResolution{180 * angularResolutionDegrees / M_PI} {
+      m_angularResolution{M_PI * angularResolutionDegrees / 180} {
   ROS_INFO("Instantiate AStar");
 }
 
@@ -22,27 +22,21 @@ boost::optional<Path> AStar::astar(const State &startState,
                                    const State &goalState, const int epsilon,
                                    const std::string &heuristicFunction,
                                    const std::string &edgeCostFunction) {
-  ROS_INFO("Clear Data Structures");
+  // Clear Data Structures
   m_nodeGraph.clear();
   m_openList = OpenList();
-  ROS_INFO("Set Variables");
+  // Set Variables
   m_epsilon = epsilon;
   m_goalState = goalState;
   // Set functions
-  ROS_INFO("Set functions");
   setHeuristicFunction(heuristicFunction);
   setEdgeCostFunction(edgeCostFunction);
   // Add start node to the graph and open list
-  ROS_INFO("Initialize List");
   m_startIndex = hashFunction(startState);
-  ROS_INFO("Start Index: %d", m_startIndex);
   const auto startNodeIt = m_nodeGraph.emplace(
       m_startIndex, Node{startState, m_startIndex, boost::none, 0});
-  ROS_INFO("First node inserted into graph");
   m_openList.emplace(addFCost(startNodeIt.first->second), m_startIndex);
-  ROS_INFO("Begin Expansion");
   while (not m_openList.empty()) {
-    ROS_INFO("Get next node in open list");
     const auto currentNode{getNode(m_openList.top().second)};
     m_openList.pop();
     if (m_epsilon <= 1) {
@@ -53,20 +47,25 @@ boost::optional<Path> AStar::astar(const State &startState,
       getSuccessors(*currentNode);
       return getPath(currentNode->m_index);
     }
-    ROS_INFO("Getting Successors");
     getSuccessors(*currentNode);
-    ROS_INFO("Successors Gotten");
   }
-  ROS_INFO("Entire Configuration Space Expanded");
+  ROS_INFO("Entire Configuration Space Expanded, Path not found");
   return boost::none;
 }
 
 void AStar::getSuccessors(const Node &currentNode) {
   for (const auto &primitive : m_primitives) {
-    const auto newX = currentNode.m_state.m_x + primitive.m_deltaX;
-    const auto newY = currentNode.m_state.m_y + primitive.m_deltaY;
+    if (primitive.m_deltaX < 0) {
+      continue;
+    }
     const auto newTheta = ackermann::wrapToPi(currentNode.m_state.m_theta +
                                               primitive.m_deltaTheta);
+    const auto newX = currentNode.m_state.m_x +
+                      primitive.m_deltaX * std::cos(newTheta) -
+                      primitive.m_deltaY * std::sin(newTheta);
+    const auto newY = currentNode.m_state.m_y +
+                      primitive.m_deltaX * std::sin(newTheta) +
+                      primitive.m_deltaY * std::cos(newTheta);
     const State newState{newX, newY, newTheta, Gear::FORWARD};
     const auto newIndex{hashFunction(newState)};
     /// TODO: Add occupancy grid with cell cost
@@ -98,8 +97,7 @@ void AStar::getSuccessors(const Node &currentNode) {
 
 boost::optional<Node &> AStar::getNode(const NodeIndex index) {
   if (index < 0) {
-    std::cout << "\nERROR: Node index given to AStar::getNode is negative"
-              << std::endl;
+    ROS_ERROR("ERROR: Node index given to AStar::getNode is negative");
     throw "";
   }
   const auto nodeIt{m_nodeGraph.find(index)};
@@ -112,9 +110,8 @@ boost::optional<Node &> AStar::getNode(const NodeIndex index) {
 boost::optional<Path> AStar::getPath(const NodeIndex &endIndex) {
   auto currentNode{getNode(endIndex)};
   if (not currentNode) {
-    std::cout << "\nRequested goal node is not in the existing node graph. "
-                 "Returning None"
-              << std::endl;
+    ROS_INFO("Requested goal node is not in the existing node graph. "
+             "Returning None");
     return boost::none;
   }
   Path path{currentNode->m_state};
@@ -155,7 +152,7 @@ void AStar::setEdgeCostFunction(const std::string &edgeCostFunction) {
     };
     return;
   }
-  std::cout << "\nERROR: Valid Edge Cost Function Not Provided" << std::endl;
+  ROS_ERROR("ERROR: Valid Edge Cost Function Not Provided");
   throw "";
 }
 
@@ -171,6 +168,6 @@ void AStar::setHeuristicFunction(const std::string &heuristicFunction) {
     m_heuristicFunction = [this](const State &state) { return 0; };
     return;
   }
-  std::cout << "\nERROR: Valid Heuristic Function Not Provided" << std::endl;
+  ROS_ERROR("ERROR: Valid Heuristic Function Not Provided");
   throw "";
 }

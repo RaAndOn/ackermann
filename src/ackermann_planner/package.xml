@@ -57,6 +57,7 @@
   <exec_depend>std_msgs</exec_depend>
 
   <depend>ackermann_project</depend>
+  <depend>tf2_ros</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
