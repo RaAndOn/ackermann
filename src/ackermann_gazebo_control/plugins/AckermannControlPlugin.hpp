@@ -1,6 +1,5 @@
 #pragma once
 
-// #include <gazebo/gazebo.hh>
 #include <geometry_msgs/TwistStamped.h>
 #include <ignition/math/Vector3.hh>
 #include <mutex>
