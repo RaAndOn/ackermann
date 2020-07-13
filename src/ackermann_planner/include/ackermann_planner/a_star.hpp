@@ -34,12 +34,10 @@ using Path = std::vector<State>;
 using NodeRank = std::pair<FCost, NodeIndex>; // FCost and NodeIndex
 using OpenList =
     std::priority_queue<NodeRank, std::vector<NodeRank>,
-                        std::greater<NodeRank>>;  // Min priority queue
-using ClosedList = std::unordered_set<NodeIndex>; // Constant time lookup
+                        std::greater<NodeRank>>; // Min priority queue
 using Graph = std::unordered_map<NodeIndex, Node>;
 using Heuristic = std::function<double(const State &state)>;
 using EdgeCost = std::function<double(const Primitive &primitive)>;
-// using Hash = std::function<NodeIndex(const State &state)>;
 
 class AStar {
 public:
@@ -106,17 +104,13 @@ public:
 private:
   OpenList m_openList;
   Graph m_nodeGraph;
-  // boost::optional<Graph> m_heuristicGraph;
   int m_epsilon;
   int m_collisionThresh;
   Heuristic m_heuristicFunction;
   EdgeCost m_edgeCostFunction;
-  // Hash m_hashFunction;
 
   boost::optional<State> m_goalState;
   NodeIndex m_startIndex;
-
-  int m_direction;
 
   double m_distanceThreshold;  // Meters
   double m_angularThreshold;   // Radians
@@ -127,22 +121,44 @@ private:
 
   /// @brief Given a node, this function finds any legitimate successors and
   /// adds them to the node graph
+  /// @param currentNode node whose successors should be gotten
   void getSuccessors(const Node &currentNode);
 
+  /// @brief Given a two states compare them and see if they are within the
+  /// threshold to be the same states
+  /// @param state1 The first state to be compared
+  /// @param state2 The second state to be compared
+  /// @return Boolean indicating whether two states are within in the threshold
+  /// to be considered the same
   bool checkIfSameState(const State &state1, const State &state2);
 
   /// @brief The function will find and return a the node in the graph
   /// correspinding to an index
+  /// @param index the index of the node wanted
+  /// @return The node associated index, or boost::none if the node is not in
+  /// the graph
   boost::optional<Node &> getNode(const NodeIndex index);
 
-  boost::optional<Path> getPath(const NodeIndex &goalIndex);
+  /// @brief Get the path from the start state to the end index
+  /// @param endIndex is the index of the node at the end of the path
+  /// @return the path from the start state to the end of the path, returning
+  /// boost::none if there is no path
+  boost::optional<Path> getPath(const NodeIndex &endIndex);
 
+  /// @brief Set a heuristic lambda function variable to the indicated lambda
+  /// function
+  /// @param heuristicFunction indication of which heuristic function to use
   void setHeuristicFunction(const std::string &heuristicFunction);
 
+  /// @brief Set a edge cost lambda function variable to the indicated lambda
+  /// function
+  /// @param edgeCostFunction indication of which edge cost function to use
   void setEdgeCostFunction(const std::string &edgeCostFunction);
 
-  /// @brief Function to safely calculate fCost, avoiding INT rollover
-  inline FCost addFCost(const Node &node) {
+  /// @brief Function to safely calculate F-cost, avoiding INT rollover
+  /// @param node the predicted F-cost of the node
+  /// @return Calculated F-cost
+  inline FCost addFCost(const Node &node) const {
     const FCost fCost{node.m_gCost +
                       m_heuristicFunction(node.m_state) * m_epsilon};
     if (fCost < 0) {
