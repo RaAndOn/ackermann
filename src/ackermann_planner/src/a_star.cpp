@@ -9,7 +9,8 @@ AStar::AStar(const std::vector<Primitive> &primitives,
              const double angularThresholdDegrees,
              const double distanceResolutionMeters,
              const double angularResolutionDegrees)
-    : m_primitives{primitives}, m_distanceThreshold{distanceThresholdMeters},
+    : m_primitives{primitives}, m_distanceThresholdSquared{std::pow(
+                                    distanceThresholdMeters, 2.0)},
       m_angularThreshold{M_PI * angularThresholdDegrees / 180},
       m_distanceResolution{distanceResolutionMeters},
       m_angularResolution{M_PI * angularResolutionDegrees / 180} {
@@ -36,6 +37,7 @@ boost::optional<Path> AStar::astar(const State &startState,
   const auto startNodeIt = m_nodeGraph.emplace(
       m_startIndex, Node{startState, m_startIndex, boost::none, 0});
   m_openList.emplace(addFCost(startNodeIt.first->second), m_startIndex);
+  // Keep expanding nodes while the open list is not empty
   while (not m_openList.empty()) {
     const auto currentNode{getNode(m_openList.top().second)};
     m_openList.pop();
@@ -49,12 +51,14 @@ boost::optional<Path> AStar::astar(const State &startState,
     }
     getSuccessors(*currentNode);
   }
-  ROS_INFO("Entire Configuration Space Expanded, Path not found");
+  ROS_INFO("PATH NOT FOUND: Entire Configuration Space Expanded");
   return boost::none;
 }
 
 void AStar::getSuccessors(const Node &currentNode) {
+  // Iterate over all the motion primitives to the node's successors
   for (const auto &primitive : m_primitives) {
+    // Create new successor state from primitive
     const auto newTheta = ackermann::wrapToPi(currentNode.m_state.m_theta +
                                               primitive.m_deltaTheta);
     const auto newX = currentNode.m_state.m_x +
@@ -72,8 +76,11 @@ void AStar::getSuccessors(const Node &currentNode) {
     if (cellCost >= 0 and cellCost < m_collisionThresh) // if free
     {
       const auto gCost{m_edgeCostFunction(primitive) + currentNode.m_gCost};
+      // Check if node already exists in the graph
       const auto existingNode{getNode(newIndex)};
       if (existingNode) {
+        // Update the node if is not closed and the cost to come is better then
+        // add it back to the open list
         if (not existingNode->m_closed and gCost < existingNode->m_gCost) {
           existingNode->m_gCost = gCost;
           existingNode->m_parentIndex = currentNode.m_index;
@@ -86,7 +93,7 @@ void AStar::getSuccessors(const Node &currentNode) {
         }
         continue;
       }
-      // Add node to the open list
+      // Add node to the open list if the node does not exist in the graph
       const auto newNodeIt = m_nodeGraph.emplace(
           newIndex, Node{newState, newIndex, currentNode.m_index, gCost});
       m_openList.emplace(addFCost(newNodeIt.first->second), newIndex);
@@ -125,14 +132,16 @@ boost::optional<Path> AStar::getPath(const NodeIndex &endIndex) {
 }
 
 bool AStar::checkIfSameState(const State &state1, const State &state2) {
+  // Compare theta difference first, to avoid expensive euclidean calculation
   const double thetaDiff{
       std::abs(ackermann::wrapToPi(state1.m_theta - state2.m_theta))};
   if (thetaDiff > m_angularThreshold) {
     return false;
   }
+  // Use squared distance for speed boost, avoiding expensive sqrt
   const double euclidean{std::pow(state1.m_x - state2.m_x, 2.0) +
                          std::pow(state1.m_y - state2.m_y, 2.0)};
-  return euclidean < std::pow(m_distanceThreshold, 2.0);
+  return euclidean < m_distanceThresholdSquared;
 }
 
 void AStar::setEdgeCostFunction(const std::string &edgeCostFunction) {

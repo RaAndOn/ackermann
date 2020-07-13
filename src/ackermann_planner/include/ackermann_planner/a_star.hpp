@@ -16,7 +16,7 @@
 #include <ackermann_planner/planner_utils.hpp>
 
 using FCost = double;
-using NodeIndex = signed;
+using NodeIndex = long long int;
 
 struct Node {
   State m_state;
@@ -64,7 +64,7 @@ public:
   /// @brief This is the Szudzik Pairing algorithm which takes a pair of
   /// positive integers and makes them into a unique positive integer.
   /// https://www.vertexfragment.com/ramblings/cantor-szudzik-pairing-functions/
-  inline int szudzikPair(const unsigned x, unsigned y) const {
+  inline NodeIndex szudzikPair(const NodeIndex x, const NodeIndex y) const {
     return (x >= y ? (x * x) + x + y : (y * y) + x);
   }
 
@@ -72,11 +72,13 @@ public:
   /// takes a pair of signed integers and makes them into a unique positive
   /// integer.
   /// https://www.vertexfragment.com/ramblings/cantor-szudzik-pairing-functions/
-  inline unsigned signedSzudzikPair(const int x, const int y) const {
+  inline NodeIndex signedSzudzikPair(const NodeIndex x,
+                                     const NodeIndex y) const {
     // Modification to Sudzik Pairing algorithm for negative numbers
-    const int a = (x >= 0.0 ? 2.0 * x : (-2.0 * x) - 1.0);
-    const int b = (y >= 0.0 ? 2.0 * y : (-2.0 * y) - 1.0);
+    const NodeIndex a = (x >= 0.0 ? 2.0 * x : (-2.0 * x) - 1.0);
+    const NodeIndex b = (y >= 0.0 ? 2.0 * y : (-2.0 * y) - 1.0);
     // Szudzik Pairing Algorithm
+
     return szudzikPair(a, b);
     // * 0.5 <- Removed to ensure numbers are ints
   }
@@ -85,13 +87,19 @@ public:
   /// The state is rounded based on the resolution
   inline NodeIndex hashFunction(const State &state) const {
     // Make theta positive so we can use szudzik and get a tighter packing
-    const unsigned theta{
-        static_cast<unsigned>((state.m_theta + M_PI) / m_angularResolution)};
+    const NodeIndex theta{
+        static_cast<int>((state.m_theta + M_PI) / m_angularResolution)};
+    if (theta < 0) {
+      ROS_ERROR("Theta is negative");
+    }
     const int x{static_cast<int>(state.m_x / m_distanceResolution)};
     const int y{static_cast<int>(state.m_y / m_distanceResolution)};
 
-    const unsigned index1{signedSzudzikPair(x, y)};
-    const int index2{szudzikPair(index1, theta)};
+    const NodeIndex index1{signedSzudzikPair(x, y)};
+    if (index1 < 0) {
+      ROS_ERROR("index1 is negative");
+    }
+    const NodeIndex index2{szudzikPair(index1, theta)};
     if (index2 < 0) {
       ROS_ERROR("ERROR: hashFunction Calculated "
                 "Node index is negative, "
@@ -112,8 +120,11 @@ private:
   boost::optional<State> m_goalState;
   NodeIndex m_startIndex;
 
-  double m_distanceThreshold;  // Meters
-  double m_angularThreshold;   // Radians
+  // Thresholds for determining if states are the same
+  double m_distanceThresholdSquared; // Meters
+  double m_angularThreshold;         // Radians
+
+  // Resolution for discretizing state into integers
   double m_distanceResolution; // Meters
   double m_angularResolution;  // Radians
 
