@@ -91,6 +91,7 @@ public:
         static_cast<int>((state.m_theta + M_PI) / m_angularResolution)};
     if (theta < 0) {
       ROS_ERROR("Theta is negative");
+      throw "";
     }
     const int x{static_cast<int>(state.m_x / m_distanceResolution)};
     const int y{static_cast<int>(state.m_y / m_distanceResolution)};
@@ -98,6 +99,7 @@ public:
     const NodeIndex index1{signedSzudzikPair(x, y)};
     if (index1 < 0) {
       ROS_ERROR("index1 is negative");
+      throw "";
     }
     const NodeIndex index2{szudzikPair(index1, theta)};
     if (index2 < 0) {
