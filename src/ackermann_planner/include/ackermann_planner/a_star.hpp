@@ -16,7 +16,7 @@
 #include <ackermann_planner/planner_utils.hpp>
 
 using FCost = double;
-using NodeIndex = unsigned;
+using NodeIndex = signed;
 
 struct Node {
   State m_state;
@@ -63,34 +63,44 @@ public:
                               const std::string &heuristicFunction,
                               const std::string &edgeCostFunction);
 
-  /// @brief This is a modified version of the Szudzik Pairing algorithm which
-  /// takes a pair of integers and makes them into a unique integer.
+  /// @brief This is the Szudzik Pairing algorithm which takes a pair of
+  /// positive integers and makes them into a unique positive integer.
   /// https://www.vertexfragment.com/ramblings/cantor-szudzik-pairing-functions/
-  inline NodeIndex signedSzudzikPair(const int x, const int y) {
+  inline int szudzikPair(const unsigned x, unsigned y) const {
+    return (x >= y ? (x * x) + x + y : (y * y) + x);
+  }
+
+  /// @brief This is a modified version of the Szudzik Pairing algorithm which
+  /// takes a pair of signed integers and makes them into a unique positive
+  /// integer.
+  /// https://www.vertexfragment.com/ramblings/cantor-szudzik-pairing-functions/
+  inline unsigned signedSzudzikPair(const int x, const int y) const {
     // Modification to Sudzik Pairing algorithm for negative numbers
     const int a = (x >= 0.0 ? 2.0 * x : (-2.0 * x) - 1.0);
     const int b = (y >= 0.0 ? 2.0 * y : (-2.0 * y) - 1.0);
     // Szudzik Pairing Algorithm
-    return (a >= b ? (a * a) + a + b : (b * b) + a);
+    return szudzikPair(a, b);
     // * 0.5 <- Removed to ensure numbers are ints
   }
 
   /// @brief This function computes a unique index for a state
   /// The state is rounded based on the resolution
-  inline NodeIndex hashFunction(const State &state) {
-    const int theta{static_cast<int>(state.m_theta / m_angularResolution)};
+  inline NodeIndex hashFunction(const State &state) const {
+    // Make theta positive so we can use szudzik and get a tighter packing
+    const unsigned theta{
+        static_cast<unsigned>((state.m_theta + M_PI) / m_angularResolution)};
     const int x{static_cast<int>(state.m_x / m_distanceResolution)};
     const int y{static_cast<int>(state.m_y / m_distanceResolution)};
 
-    const NodeIndex index1{signedSzudzikPair(x, y)};
-    const NodeIndex index2{signedSzudzikPair(index1, theta)};
+    const unsigned index1{signedSzudzikPair(x, y)};
+    const int index2{szudzikPair(index1, theta)};
     if (index2 < 0) {
       ROS_ERROR("ERROR: hashFunction Calculated "
                 "Node index is negative, "
                 "must be positive");
       throw "";
     }
-    return index2;
+    return (state.m_gear == Gear::FORWARD) ? index2 : -index2;
   };
 
 private:

@@ -55,9 +55,6 @@ boost::optional<Path> AStar::astar(const State &startState,
 
 void AStar::getSuccessors(const Node &currentNode) {
   for (const auto &primitive : m_primitives) {
-    if (primitive.m_deltaX < 0) {
-      continue;
-    }
     const auto newTheta = ackermann::wrapToPi(currentNode.m_state.m_theta +
                                               primitive.m_deltaTheta);
     const auto newX = currentNode.m_state.m_x +
@@ -66,7 +63,9 @@ void AStar::getSuccessors(const Node &currentNode) {
     const auto newY = currentNode.m_state.m_y +
                       primitive.m_deltaX * std::sin(newTheta) +
                       primitive.m_deltaY * std::cos(newTheta);
-    const State newState{newX, newY, newTheta, Gear::FORWARD};
+    const auto newGear =
+        (primitive.m_deltaX > 0) ? Gear::FORWARD : Gear::REVERSE;
+    const State newState{newX, newY, newTheta, newGear};
     const auto newIndex{hashFunction(newState)};
     /// TODO: Add occupancy grid with cell cost
     const auto cellCost = 0;
@@ -96,10 +95,6 @@ void AStar::getSuccessors(const Node &currentNode) {
 }
 
 boost::optional<Node &> AStar::getNode(const NodeIndex index) {
-  if (index < 0) {
-    ROS_ERROR("ERROR: Node index given to AStar::getNode is negative");
-    throw "";
-  }
   const auto nodeIt{m_nodeGraph.find(index)};
   if (nodeIt == m_nodeGraph.end()) {
     return boost::none;
