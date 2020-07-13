@@ -13,7 +13,8 @@ AStar::AStar(const std::vector<Primitive> &primitives,
                                     distanceThresholdMeters, 2.0)},
       m_angularThreshold{M_PI * angularThresholdDegrees / 180},
       m_distanceResolution{distanceResolutionMeters},
-      m_angularResolution{M_PI * angularResolutionDegrees / 180} {
+      m_angularResolution{M_PI * angularResolutionDegrees / 180},
+      m_collisionThresh{1} {
   ROS_INFO("Instantiate AStar");
 }
 
@@ -70,7 +71,7 @@ void AStar::getSuccessors(const Node &currentNode) {
     const auto newGear =
         (primitive.m_deltaX > 0) ? Gear::FORWARD : Gear::REVERSE;
     const State newState{newX, newY, newTheta, newGear};
-    const auto newIndex{hashFunction(newState)};
+    const NodeIndex newIndex{hashFunction(newState)};
     /// TODO: Add occupancy grid with cell cost
     const auto cellCost = 0;
     if (cellCost >= 0 and cellCost < m_collisionThresh) // if free

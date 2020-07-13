@@ -114,7 +114,7 @@ void LatticePlanner::visualizationLoopTEST() {
       ++m_markerID;
     }
   } else {
-    ROS_INFO("No path found");
+    ROS_ERROR("No path found");
   }
 
   m_pubVisualization.publish(markerArray);

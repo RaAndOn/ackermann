@@ -78,7 +78,6 @@ public:
     const NodeIndex a = (x >= 0.0 ? 2.0 * x : (-2.0 * x) - 1.0);
     const NodeIndex b = (y >= 0.0 ? 2.0 * y : (-2.0 * y) - 1.0);
     // Szudzik Pairing Algorithm
-
     return szudzikPair(a, b);
     // * 0.5 <- Removed to ensure numbers are ints
   }
