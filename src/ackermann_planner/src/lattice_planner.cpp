@@ -13,6 +13,9 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
   m_privateNH.param("discretization_degrees", m_discretizationDegrees, 22.5);
   m_privateNH.param("steering_increments", m_steeringIncrements, 1);
   m_privateNH.param("velocity", m_velocity, 5.0);
+  m_privateNH.param("angular_threshold_degrees", m_angularThresholdDegrees,
+                    15.0);
+  m_privateNH.param("distance_threshold_meters", m_distanceThreshold, 1.0);
   // Set publishers and subscribers
   m_pubVisualization = m_publicNH.advertise<visualization_msgs::MarkerArray>(
       "visualization_marker", 0);
@@ -97,7 +100,8 @@ void LatticePlanner::visualizationLoopTEST() {
   ROS_INFO("distanceResolution: %s",
            std::to_string(m_distanceResolution).c_str());
 
-  AStar planner{m_motionPrimitivesVector, 1.0, 15, m_distanceResolution,
+  AStar planner{m_motionPrimitivesVector, m_distanceThreshold,
+                m_angularThresholdDegrees, m_distanceResolution,
                 m_angularResolutionDegrees};
 
   State startState{0, 0, 0, Gear::FORWARD};

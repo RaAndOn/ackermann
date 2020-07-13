@@ -34,6 +34,8 @@ private:
   int m_steeringIncrements;
   double m_distanceResolution;
   double m_angularResolutionDegrees;
+  double m_angularThresholdDegrees;
+  double m_distanceThreshold;
 
   int m_markerID;
 
