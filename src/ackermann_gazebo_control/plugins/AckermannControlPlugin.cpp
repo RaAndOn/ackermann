@@ -79,20 +79,25 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
   } else {
     ROS_ERROR("Parameter 'vehicle_odom_topic' missing");
   }
+  std::string vehicleControlTopic;
+  if (sdf->HasElement("vehicle_control_topic")) {
+    vehicleControlTopic = sdf->Get<std::string>("vehicle_control_topic");
+  } else {
+    ROS_ERROR("Parameter 'vehicle_control_topic' missing");
+  }
 
   // Define Ground Truth Origin for tf broadcast and RVIZ visualization
   m_groundTruthOrigin = m_baseLink->WorldCoGPose().Pos();
   m_groundTruthOrigin.Z() = chassisHeight - 2 * wheelRadius;
 
   ros::NodeHandle m_nh(m_robotNamespace);
-  m_controlSub = m_nh.subscribe("cmd_vel", 10,
+
+  m_controlSub = m_nh.subscribe("cmd_vel", 1,
                                 &AckermannControlPlugin::controlCallback, this);
 
   m_steeringPub = m_nh.advertise<ackermann_msgs::AckermannSteering>(
       "ackermann/steering", 1);
-
   m_groundTruthPub = m_nh.advertise<nav_msgs::Odometry>(vehicleOdomTopic, 1);
-
   m_jointPub = m_nh.advertise<sensor_msgs::JointState>("/joint_states", 1);
 
   // Initialize variables

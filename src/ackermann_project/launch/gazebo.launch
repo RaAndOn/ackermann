@@ -19,8 +19,8 @@
   <arg name="wheel_depth" default="0.2" />
   <arg name="wheelbase" default="3" />
   <!-- Topic names -->
-  <arg name="vehicle_odom_topic" default="$(arg vehicle_odom_topic)" />
-  <arg name="vehicle_control_topic" default="$(arg vehicle_control_topic)" />
+  <arg name="vehicle_odom_topic" default="ground_truth" />
+  <arg name="vehicle_control_topic" default="cmd_vel" />
 
   <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">

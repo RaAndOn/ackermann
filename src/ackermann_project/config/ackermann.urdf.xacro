@@ -26,6 +26,8 @@
   <!-- Topic Names -->
   <xacro:arg name="vehicle_odom_topic" default="ground_truth" />
   <xacro:property name="vehicle_odom_topic" value="$(arg vehicle_odom_topic)" />
+  <xacro:arg name="vehicle_control_topic" default="cmd_vel" />
+  <xacro:property name="vehicle_control_topic" value="$(arg vehicle_control_topic)" />
 
 
   <!-- Material colors -->
@@ -168,7 +170,6 @@
     </plugin>
 
     <plugin name="ackermann_control_plugin" filename="libAckermannControlPlugin.so">
-      <!-- <chassis>chassis</chassis> -->
       <max_speed>35.7632</max_speed>
       <wheel_angular_velocity_p_gain>1e5</wheel_angular_velocity_p_gain>
       <wheel_angular_velocity_i_gain>0</wheel_angular_velocity_i_gain>
@@ -181,6 +182,7 @@
       <wheel_radius>${wheel_radius}</wheel_radius>
       <chassis_height>${chassis_height}</chassis_height>
       <vehicle_odom_topic>${vehicle_odom_topic}</vehicle_odom_topic>
+      <vehicle_control_topic>${vehicle_control_topic}</vehicle_control_topic>
     </plugin>
   </gazebo>
 

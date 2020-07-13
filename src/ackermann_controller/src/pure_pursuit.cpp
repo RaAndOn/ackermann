@@ -11,11 +11,11 @@ PurePursuit::PurePursuit(ros::NodeHandle &privateNH, ros::NodeHandle &publicNH)
   m_privateNH.param("look_ahead_distance", m_lookAheadDistance, 10.0);
   m_privateNH.param("velocity", m_velocity, 5.0);
 
-  m_vehicleSub = m_publicNH.subscribe("m_vehicleOdomTopic", 1,
+  m_vehicleSub = m_publicNH.subscribe(m_vehicleOdomTopic, 1,
                                       &PurePursuit::controlCallback, this);
 
   m_controlPub = m_publicNH.advertise<geometry_msgs::TwistStamped>(
-      "m_vehicleControlTopic", 1);
+      m_vehicleControlTopic, 1);
 }
 
 PurePursuit::~PurePursuit() = default;
