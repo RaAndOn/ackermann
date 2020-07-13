@@ -32,6 +32,8 @@ private:
   double m_discretizationDegrees;
   double m_velocity;
   int m_steeringIncrements;
+  double m_distanceResolution;
+  double m_angularResolutionDegrees;
 
   int m_markerID;
 

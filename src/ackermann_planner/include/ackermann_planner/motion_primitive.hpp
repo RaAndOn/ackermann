@@ -16,7 +16,7 @@ struct Primitive {
 class MotionPrimitive {
 public:
   MotionPrimitive(const double wheelBase, const double velocity,
-                  const double dt, const double angleDiscretization,
+                  const double dt, const double angleDiscretizationDegrees,
                   const int numberOfPrimitives);
 
   ~MotionPrimitive();
@@ -27,10 +27,16 @@ public:
   /// @param forward indicates whether the vehicle is moving forward or reverse
   void calculateMotionPrimitive(const double steerAngle, const bool forward);
 
-  std::vector<Primitive> getMotionPrimitives();
+  std::vector<Primitive> getMotionPrimitives() const;
+
+  double getDistanceResolution() const { return m_distanceResolution; }
+
+  double getAngularResolution() const { return m_angularResolution; }
 
 private:
   double m_angleDiscretization;
+  double m_angularResolution;
+  double m_distanceResolution;
   double m_wheelBase;
   double m_arcLength;
   std::vector<Primitive> m_primitiveVector;

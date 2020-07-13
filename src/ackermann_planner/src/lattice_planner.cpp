@@ -24,6 +24,10 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
                                   m_steeringIncrements};
   m_motionPrimitivesVector = motionPrimitive.getMotionPrimitives();
 
+  m_distanceResolution = motionPrimitive.getDistanceResolution();
+  m_angularResolutionDegrees =
+      motionPrimitive.getAngularResolution() * 180 / M_PI;
+
   initializeMarkers();
 }
 
@@ -87,10 +91,17 @@ void LatticePlanner::visualizationLoopTEST() {
   //   ++m_markerID;
   // }
 
-  AStar planner{m_motionPrimitivesVector, 1.0, 360, 0.01, 1};
+  ROS_INFO("angularResolutionDegrees: %s",
+           std::to_string(m_angularResolutionDegrees).c_str());
+
+  ROS_INFO("distanceResolution: %s",
+           std::to_string(m_distanceResolution).c_str());
+
+  AStar planner{m_motionPrimitivesVector, 1.0, 15, m_distanceResolution,
+                m_angularResolutionDegrees};
 
   State startState{0, 0, 0, Gear::FORWARD};
-  State goalState{10, 20, M_PI, Gear::FORWARD};
+  State goalState{-10, 20, 0, Gear::FORWARD};
 
   auto path = planner.astar(startState, goalState, 1, "Euclidean", "Euclidean");
   if (path) {

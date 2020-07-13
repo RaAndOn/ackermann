@@ -6,9 +6,10 @@
 
 MotionPrimitive::MotionPrimitive(const double wheelBase, const double velocity,
                                  const double dt,
-                                 const double angleDiscretization,
+                                 const double angleDiscretizationDegrees,
                                  const int numberOfDiscretizations)
-    : m_wheelBase{wheelBase}, m_angleDiscretization{M_PI * angleDiscretization /
+    : m_wheelBase{wheelBase}, m_angleDiscretization{M_PI *
+                                                    angleDiscretizationDegrees /
                                                     180},
       m_arcLength{velocity * dt} {
   // Assume vehicle moves the same speed and distance regardless of steer angle
@@ -20,6 +21,12 @@ MotionPrimitive::MotionPrimitive(const double wheelBase, const double velocity,
   for (int i = 1; i <= numberOfDiscretizations; ++i) {
     double steerAngle{m_angleDiscretization * i};
     calculateMotionPrimitive(steerAngle, true);
+    if (i == 1) {
+      /// TODO: Justify these values
+      m_angularResolution = m_primitiveVector.back().m_deltaTheta;
+      m_distanceResolution = std::max(m_primitiveVector.back().m_deltaX,
+                                      m_primitiveVector.back().m_deltaY);
+    }
     calculateMotionPrimitive(-steerAngle, true);
     calculateMotionPrimitive(steerAngle, false);
     calculateMotionPrimitive(-steerAngle, false);
@@ -97,6 +104,6 @@ void MotionPrimitive::calculateMotionPrimitive(const double steerAngle,
   m_primitiveVector.push_back(Primitive{deltaX, deltaY, deltaTheta});
 }
 
-std::vector<Primitive> MotionPrimitive::getMotionPrimitives() {
+std::vector<Primitive> MotionPrimitive::getMotionPrimitives() const {
   return m_primitiveVector;
 }
