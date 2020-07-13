@@ -17,15 +17,15 @@ MotionPrimitive::MotionPrimitive(const double wheelBase, const double velocity,
   ROS_INFO("dt: %s", std::to_string(dt).c_str());
 
   calculateMotionPrimitive(0, true);
+  /// Set distance resolution for planner as half of a straight forward movement
+  m_distanceResolution = m_primitiveVector.back().m_deltaX * .5;
   calculateMotionPrimitive(0, false);
   for (int i = 1; i <= numberOfDiscretizations; ++i) {
     double steerAngle{m_angleDiscretization * i};
     calculateMotionPrimitive(steerAngle, true);
     if (i == 1) {
-      /// TODO: Justify these values
+      /// Set angular resolution for planner as a single delta theta
       m_angularResolution = m_primitiveVector.back().m_deltaTheta;
-      m_distanceResolution = std::max(m_primitiveVector.back().m_deltaX,
-                                      m_primitiveVector.back().m_deltaY);
     }
     calculateMotionPrimitive(-steerAngle, true);
     calculateMotionPrimitive(steerAngle, false);
@@ -102,8 +102,4 @@ void MotionPrimitive::calculateMotionPrimitive(const double steerAngle,
   double deltaTheta = gear * arcMeasure;
 
   m_primitiveVector.push_back(Primitive{deltaX, deltaY, deltaTheta});
-}
-
-std::vector<Primitive> MotionPrimitive::getMotionPrimitives() const {
-  return m_primitiveVector;
 }

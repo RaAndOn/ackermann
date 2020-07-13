@@ -27,11 +27,19 @@ public:
   /// @param forward indicates whether the vehicle is moving forward or reverse
   void calculateMotionPrimitive(const double steerAngle, const bool forward);
 
-  std::vector<Primitive> getMotionPrimitives() const;
-
+  /// @brief This is a simple getter function
+  /// @return The resolution in meters to be used in a planner.
   double getDistanceResolution() const { return m_distanceResolution; }
 
+  /// @brief This is a simple getter function
+  /// @return The resolution in radians to be used in a planner.
   double getAngularResolution() const { return m_angularResolution; }
+
+  /// @brief  This is a simple getter function
+  /// @return The motion primitives created by class
+  std::vector<Primitive> getMotionPrimitives() const {
+    return m_primitiveVector;
+  }
 
 private:
   double m_angleDiscretization;
