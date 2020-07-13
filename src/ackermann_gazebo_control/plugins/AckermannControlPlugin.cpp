@@ -73,6 +73,13 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
     ROS_ERROR("Parameter 'chassis_height' missing");
   }
 
+  std::string vehicleOdomTopic;
+  if (sdf->HasElement("vehicle_odom_topic")) {
+    vehicleOdomTopic = sdf->Get<std::string>("vehicle_odom_topic");
+  } else {
+    ROS_ERROR("Parameter 'vehicle_odom_topic' missing");
+  }
+
   // Define Ground Truth Origin for tf broadcast and RVIZ visualization
   m_groundTruthOrigin = m_baseLink->WorldCoGPose().Pos();
   m_groundTruthOrigin.Z() = chassisHeight - 2 * wheelRadius;
@@ -84,8 +91,7 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
   m_steeringPub = m_nh.advertise<ackermann_msgs::AckermannSteering>(
       "ackermann/steering", 1);
 
-  m_groundTruthPub =
-      m_nh.advertise<nav_msgs::Odometry>("ackermann/ground_truth", 1);
+  m_groundTruthPub = m_nh.advertise<nav_msgs::Odometry>(vehicleOdomTopic, 1);
 
   m_jointPub = m_nh.advertise<sensor_msgs::JointState>("/joint_states", 1);
 

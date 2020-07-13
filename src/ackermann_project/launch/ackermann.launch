@@ -10,6 +10,8 @@
   <arg name="wheel_radius" default="0.3556" />
   <arg name="wheel_depth" default="0.2" />
   <arg name="wheelbase" default="3" />
+  <!-- Topic names -->
+  <arg name="vehicle_odom_topic" default="ackermann/ground_truth" />
 
   <!-- Planner Arguments -->
   <arg name="planner_dt" default=".1" />
@@ -23,28 +25,31 @@
   <arg name="model" default="$(find ackermann_project)/config/ackermann.urdf.xacro"/>
   <arg name="rvizconfig" default="$(find ackermann_project)/config/ackermann.rviz" />
 
-  <include file="$(find ackermann_project)/launch/gazebo.launch">
-    <arg name="model" value="$(arg model)" />
-    <arg name="chassis_mass" default="$(arg chassis_mass)" />
-    <arg name="wheel_mass" default="$(arg wheel_mass)" />
-    <arg name="chassis_length" default="$(arg chassis_length)"/>
-    <arg name="chassis_width" default="$(arg chassis_width)" />
-    <arg name="chassis_height" default="$(arg chassis_height)" />
-    <arg name="wheel_radius" default="$(arg wheel_radius)" />
-    <arg name="wheel_depth" default="$(arg wheel_depth)" />
-    <arg name="wheelbase" default="$(arg wheelbase)" />
-  </include>
+  <group>
+    <include file="$(find ackermann_project)/launch/gazebo.launch">
+      <arg name="model" value="$(arg model)" />
+      <arg name="chassis_mass" default="$(arg chassis_mass)" />
+      <arg name="wheel_mass" default="$(arg wheel_mass)" />
+      <arg name="chassis_length" default="$(arg chassis_length)"/>
+      <arg name="chassis_width" default="$(arg chassis_width)" />
+      <arg name="chassis_height" default="$(arg chassis_height)" />
+      <arg name="wheel_radius" default="$(arg wheel_radius)" />
+      <arg name="wheel_depth" default="$(arg wheel_depth)" />
+      <arg name="wheelbase" default="$(arg wheelbase)" />
+      <arg name="vehicle_odom_topic" default="$(arg vehicle_odom_topic)" />
+    </include>
 
-  <node name="ackermann_planner_node" pkg="ackermann_planner" type="ackermann_planner_node" output=
-  "screen">
-    <param name="wheelbase" type="double" value="$(arg wheelbase)" />
-    <param name="dt" type="double" value="$(arg planner_dt)" />
-    <param name="discretization_degrees" type="double" value="$(arg planner_discretization_degrees)" />
-    <param name="steering_increments" type="int" value="$(arg planner_steering_increments)" />
-    <param name="velocity" type="double" value="$(arg planner_velocity)" />
-    <param name="angular_threshold_degrees" type="double" value="$(arg planner_angular_threshold_degrees)" />
-    <param name="distance_threshold_meters" type="double" value="$(arg planner_distance_threshold)" />
-  </node>
+    <node name="ackermann_planner_node" pkg="ackermann_planner" type="ackermann_planner_node" output=
+    "screen">
+      <param name="wheelbase" type="double" value="$(arg wheelbase)" />
+      <param name="dt" type="double" value="$(arg planner_dt)" />
+      <param name="discretization_degrees" type="double" value="$(arg planner_discretization_degrees)" />
+      <param name="steering_increments" type="int" value="$(arg planner_steering_increments)" />
+      <param name="velocity" type="double" value="$(arg planner_velocity)" />
+      <param name="angular_threshold_degrees" type="double" value="$(arg planner_angular_threshold_degrees)" />
+      <param name="distance_threshold_meters" type="double" value="$(arg planner_distance_threshold)" />
+    </node>
 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" />
+  </group>
 </launch>

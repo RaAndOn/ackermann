@@ -23,6 +23,10 @@
   <xacro:property name="wheel_depth" value="$(arg wheel_depth)" />
   <xacro:arg name="wheelbase" default="3" />
   <xacro:property name="wheelbase" value="$(arg wheelbase)" />
+  <!-- Topic Names -->
+  <xacro:arg name="vehicle_odom_topic" default="ground_truth" />
+  <xacro:property name="vehicle_odom_topic" value="$(arg vehicle_odom_topic)" />
+
 
   <!-- Material colors -->
   <material name="blue">
@@ -176,6 +180,7 @@
       <lateral_width_between_wheels>${chassis_width}</lateral_width_between_wheels>
       <wheel_radius>${wheel_radius}</wheel_radius>
       <chassis_height>${chassis_height}</chassis_height>
+      <vehicle_odom_topic>${vehicle_odom_topic}</vehicle_odom_topic>
     </plugin>
   </gazebo>
 
