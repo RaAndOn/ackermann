@@ -8,6 +8,16 @@
   <arg name="debug" default="false"/>
   <arg name="model" default="./ackermann.urdf.xacro"/>
 
+  <!-- Mass in kilograms -->
+  <arg name="chassis_mass" default="1351" />
+  <arg name="wheel_mass" default="11" />
+  <!-- Length in meters -->
+  <arg name="chassis_length" default="4.45"/>
+  <arg name="chassis_width" default="2.7" />
+  <arg name="chassis_height" default="1.45" />
+  <arg name="wheel_radius" default="0.3556" />
+  <arg name="wheel_depth" default="0.2" />
+  <arg name="wheelbase" default="3" />
 
   <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -19,7 +29,14 @@
   </include>
 
   <!-- Get robot description by processing URDF -->
-  <param name="robot_description" command="xacro $(arg model)" />
+  <param name="robot_description" command="xacro $(arg model) chassis_mass:=$(arg chassis_mass)
+                                                              wheel_mass:=$(arg wheel_mass)
+                                                              chassis_length:=$(arg chassis_length)
+                                                              chassis_width:=$(arg chassis_width)
+                                                              chassis_height:=$(arg chassis_height)
+                                                              wheel_radius:=$(arg wheel_radius)
+                                                              wheel_depth:=$(arg wheel_depth)
+                                                              wheelbase:=$(arg wheelbase)" />
 
   <!-- Push robot_description to factory and spawn robot in gazebo -->
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"

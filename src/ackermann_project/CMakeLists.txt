@@ -101,8 +101,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES ackermann_project
+  INCLUDE_DIRS include
+  LIBRARIES ackermann_project
 #  CATKIN_DEPENDS ackermann_gazebo_plugin ackermann_msgs ackermann_planner roscpp
 #  DEPENDS system_lib
 )
@@ -114,14 +114,14 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+ include
   ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/ackermann_project.cpp
-# )
+add_library(${PROJECT_NAME}
+  src/ackermann_utils.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries

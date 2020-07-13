@@ -1,22 +1,37 @@
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+
 #include <ackermann_planner/lattice_planner.hpp>
+#include <ackermann_project/ackermann_utils.hpp>
 
 // Point x -- east, y -- north and z -- up yaw
 LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
                                ros::NodeHandle &publicNH)
     : m_privateNH{privateNH}, m_publicNH{publicNH} {
   // Get parameters from Param server
-  //   privateNH_.param("kp_angular", kpAngular_, 1.0);
-  //   privateNH_.param<std::string>("robot_frame", m_robotFrame, "base_link");
-  //   privateNH_.param<std::string>("world_frame", m_worldFrame, "map");
+  m_privateNH.param("wheelbase", m_wheelbase, 3.0);
+  m_privateNH.param("dt", m_dt, .1);
+  m_privateNH.param("discretization_degrees", m_discretizationDegrees, 22.5);
+  m_privateNH.param("steering_increments", m_steeringIncrements, 1);
+  m_privateNH.param("velocity", m_velocity, 5.0);
+  m_privateNH.param("angular_threshold_degrees", m_angularThresholdDegrees,
+                    15.0);
+  m_privateNH.param("distance_threshold_meters", m_distanceThreshold, 1.0);
   // Set publishers and subscribers
   m_pubVisualization = m_publicNH.advertise<visualization_msgs::MarkerArray>(
       "visualization_marker", 0);
 
-  initializeMarkers();
+  m_markerID = 0;
 
-  // Initialize loop terms
-  //   setLoopTerms(nav_msgs::Path{});
-  //   pubPathStatus_.publish(goalPath_);
+  MotionPrimitive motionPrimitive{m_wheelbase, m_velocity, m_dt,
+                                  m_discretizationDegrees,
+                                  m_steeringIncrements};
+  m_motionPrimitivesVector = motionPrimitive.getMotionPrimitives();
+
+  m_distanceResolution = motionPrimitive.getDistanceResolution();
+  m_angularResolutionDegrees =
+      motionPrimitive.getAngularResolution() * 180 / M_PI;
+
+  initializeMarkers();
 }
 
 LatticePlanner::~LatticePlanner() = default;
@@ -51,8 +66,57 @@ void LatticePlanner::initializeMarkers() {
 
 void LatticePlanner::visualizationLoopTEST() {
   visualization_msgs::MarkerArray markerArray;
-  addMarkerToArray(markerArray, {0, 1, 1, 0, Gear::FORWARD});
-  addMarkerToArray(markerArray, {1, 2, 1, .3, Gear::REVERSE});
+  m_markerID = 0;
+  // State state{m_markerID, 0, 0, 0, Gear::FORWARD};
+  // addMarkerToArray(markerArray, state);
+  // ++m_markerID;
+
+  // for (int i = 1; i < 150; ++i) {
+  //   state.m_id = i;
+  //   state.m_x +=
+  //       m_motionPrimitivesVector[1].m_deltaX * std::cos(state.m_theta) -
+  //       m_motionPrimitivesVector[1].m_deltaY * std::sin(state.m_theta);
+  //   state.m_y +=
+  //       m_motionPrimitivesVector[1].m_deltaX * std::sin(state.m_theta) +
+  //       m_motionPrimitivesVector[1].m_deltaY * std::cos(state.m_theta);
+  //   state.m_theta = ackermann::wrapToPi(
+  //       state.m_theta + m_motionPrimitivesVector[1].m_deltaTheta);
+  //   // ROS_INFO("Steer Angle %s", std::to_string(state.m_theta).c_str());
+  //   addMarkerToArray(markerArray, state);
+  // }
+
+  // for (const auto primitive : m_motionPrimitivesVector) {
+  //   Gear gear = (primitive.m_deltaX > 0) ? Gear::FORWARD : Gear::REVERSE;
+  //   State state{primitive.m_deltaX, primitive.m_deltaY,
+  //   primitive.m_deltaTheta,
+  //               gear};
+  //   addMarkerToArray(markerArray, state);
+  //   ++m_markerID;
+  // }
+
+  ROS_INFO("angularResolutionDegrees: %s",
+           std::to_string(m_angularResolutionDegrees).c_str());
+
+  ROS_INFO("distanceResolution: %s",
+           std::to_string(m_distanceResolution).c_str());
+
+  AStar planner{m_motionPrimitivesVector, m_distanceThreshold,
+                m_angularThresholdDegrees, m_distanceResolution,
+                m_angularResolutionDegrees};
+
+  State startState{0, 0, 0, Gear::FORWARD};
+  State goalState{-10, 20, 0, Gear::FORWARD};
+
+  auto path = planner.astar(startState, goalState, 1, "Euclidean", "Euclidean");
+  if (path) {
+    for (const auto &state : path.get()) {
+      addMarkerToArray(markerArray, state);
+      ++m_markerID;
+    }
+  } else {
+    ROS_ERROR("No path found");
+  }
+
   m_pubVisualization.publish(markerArray);
 }
 
@@ -68,10 +132,13 @@ void LatticePlanner::addMarkerToArray(
     ROS_ERROR("Member variable 'm_gear' of state was not set properly");
   }
   // Set Marker specifics
-  marker.id = state.m_id;
+  marker.id = markerArray.markers.size();
   marker.pose.position.x = state.m_x;
   marker.pose.position.y = state.m_y;
-  marker.pose.orientation.z = state.m_theta;
+
+  tf2::Quaternion quat;
+  quat.setRPY(0, 0, state.m_theta);
+  tf2::convert(quat, marker.pose.orientation);
 
   // Add marker to marker array
   markerArray.markers.push_back(marker);
