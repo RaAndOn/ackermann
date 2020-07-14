@@ -171,6 +171,7 @@ void AckermannControlPlugin::OnUpdate() {
 
   // Initialize ground truth message
   nav_msgs::Odometry groundTruthOdom;
+  groundTruthOdom.header.frame_id = "ground_truth";
   groundTruthOdom.header.stamp = ros::Time::now();
 
   // Get current linear velocity of the vehicle
@@ -309,10 +310,10 @@ void AckermannControlPlugin::controlCallback(
   m_desiredVelocity = cmd.twist.linear.x;
   // angular.z represents the desired steering angle of the vehicle (radians)
   m_desiredSteerAngle = cmd.twist.angular.z;
-  ROS_INFO("Desired Velocity: %s m/s",
-           std::to_string(m_desiredVelocity).c_str());
-  ROS_INFO("Desired Steer Angle: %s radians",
-           std::to_string(m_desiredSteerAngle).c_str());
+  // ROS_INFO("Desired Velocity: %s m/s",
+  //          std::to_string(m_desiredVelocity).c_str());
+  // ROS_INFO("Desired Steer Angle: %s radians",
+  //          std::to_string(m_desiredSteerAngle).c_str());
 
   // See `ackermann_geometry.pdf` for math
   m_desiredLeftWheelAngle = atan2(2 * m_l * sin(m_desiredSteerAngle),
@@ -322,10 +323,10 @@ void AckermannControlPlugin::controlCallback(
                                    2 * m_l * cos(m_desiredSteerAngle) +
                                        m_w * sin(m_desiredSteerAngle));
 
-  ROS_INFO("Desired Left Wheel Angle: %s radians",
-           std::to_string(m_desiredLeftWheelAngle).c_str());
-  ROS_INFO("Desired Right Wheel Angle: %s radians",
-           std::to_string(m_desiredRightWheelAngle).c_str());
+  // ROS_INFO("Desired Left Wheel Angle: %s radians",
+  //          std::to_string(m_desiredLeftWheelAngle).c_str());
+  // ROS_INFO("Desired Right Wheel Angle: %s radians",
+  //          std::to_string(m_desiredRightWheelAngle).c_str());
 }
 
 double AckermannControlPlugin::sign(const double num) const {

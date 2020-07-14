@@ -1,8 +1,10 @@
 #pragma once
 
+#include <boost/optional.hpp>
 #include <mutex>
 
 #include <ros/ros.h>
+#include <tf2_ros/transform_listener.h>
 
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
@@ -14,6 +16,9 @@ public:
   ~PurePursuit();
 
 private:
+  tf2_ros::Buffer m_tfBuffer;
+  tf2_ros::TransformListener m_tfListener;
+
   ros::NodeHandle m_privateNH;
   ros::NodeHandle m_publicNH;
 
@@ -26,7 +31,7 @@ private:
   std::mutex m_controllerMutex;
 
   nav_msgs::Odometry m_vehicleState;
-  nav_msgs::Path m_path;
+  boost::optional<nav_msgs::Path> m_path;
 
   double m_lookAheadDistance;
   double m_velocity;
@@ -39,5 +44,5 @@ private:
 
   void pathCallback(const nav_msgs::Path &path);
 
-  std::vector<geometry_msgs::PoseStamped>::iterator findClosestPointOnPath();
+  bool findClosestPointOnPath();
 };
