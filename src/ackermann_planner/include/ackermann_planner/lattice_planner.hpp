@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 
 #include <geometry_msgs/PoseStamped.h>
+#include <nav_msgs/Odometry.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include <ackermann_planner/Goal.h>
@@ -23,6 +24,7 @@ private:
 
   ros::Publisher m_visualizationPub;
   ros::Publisher m_pathPub;
+  ros::Subscriber m_vehicleSub;
 
   ros::ServiceServer m_planPathSrv;
 
@@ -42,6 +44,11 @@ private:
   double m_distanceThreshold;
 
   std::string m_pathTopic;
+  std::string m_vehicleOdomTopic;
+
+  std::mutex m_plannerMutex;
+
+  State m_vehicleState;
 
   /// @brief This function initializes the reverse and forward markers so they
   /// look correct. This is because ROS is dumb sometimes and it takes like 20
@@ -59,4 +66,6 @@ private:
 
   bool planPath(ackermann_planner::Goal::Request &req,
                 ackermann_planner::Goal::Response &res);
+
+  void updateStateCallback(const nav_msgs::Odometry &odom);
 };

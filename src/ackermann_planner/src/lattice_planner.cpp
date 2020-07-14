@@ -1,4 +1,5 @@
 #include <nav_msgs/Path.h>
+#include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <ackermann_planner/lattice_planner.hpp>
@@ -7,7 +8,9 @@
 // Point x -- east, y -- north and z -- up yaw
 LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
                                ros::NodeHandle &publicNH)
-    : m_privateNH{privateNH}, m_publicNH{publicNH} {
+    : m_privateNH{privateNH}, m_publicNH{publicNH}, m_vehicleState{
+                                                        0, 0, 0,
+                                                        Gear::FORWARD} {
   // Get parameters from Param server
   m_privateNH.param("wheelbase", m_wheelbase, 3.0);
   m_privateNH.param("dt", m_dt, .1);
@@ -18,10 +21,15 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
                     15.0);
   m_privateNH.param("distance_threshold_meters", m_distanceThreshold, 1.0);
   m_privateNH.param<std::string>("vehicle_path_topic", m_pathTopic, "path");
+  m_privateNH.param<std::string>("vehicle_odom_topic", m_vehicleOdomTopic,
+                                 "ground_truth");
   // Set publishers and subscribers
   m_visualizationPub = m_publicNH.advertise<visualization_msgs::MarkerArray>(
       "visualization_marker", 1);
   m_pathPub = m_publicNH.advertise<nav_msgs::Path>(m_pathTopic, 1);
+
+  m_vehicleSub = m_publicNH.subscribe(
+      m_vehicleOdomTopic, 1, &LatticePlanner::updateStateCallback, this);
 
   m_planPathSrv =
       m_publicNH.advertiseService("plan_path", &LatticePlanner::planPath, this);
@@ -40,8 +48,17 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
 
 LatticePlanner::~LatticePlanner() = default;
 
+void LatticePlanner::updateStateCallback(const nav_msgs::Odometry &odom) {
+  std::lock_guard<std::mutex> gpsLock(m_plannerMutex);
+
+  m_vehicleState.m_x = odom.pose.pose.position.x;
+  m_vehicleState.m_y = odom.pose.pose.position.y;
+
+  m_vehicleState.m_theta = tf2::getYaw(odom.pose.pose.orientation);
+}
+
 void LatticePlanner::initializeMarkers() {
-  m_forwardMarker.header.frame_id = "ground_truth";
+  m_forwardMarker.header.frame_id = m_vehicleOdomTopic;
   m_forwardMarker.header.stamp = ros::Time();
   // marker.ns = "my_namespace";
   m_forwardMarker.id = 0;
@@ -70,6 +87,8 @@ void LatticePlanner::initializeMarkers() {
 
 bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
                               ackermann_planner::Goal::Response &res) {
+  std::lock_guard<std::mutex> planLock(m_plannerMutex);
+
   visualization_msgs::MarkerArray markerArray;
   nav_msgs::Path pathMsg;
 
@@ -122,6 +141,7 @@ LatticePlanner::addMarkerToArray(visualization_msgs::MarkerArray &markerArray,
   markerArray.markers.push_back(marker);
 
   geometry_msgs::PoseStamped pose;
+  pose.header.stamp = ros::Time::now();
   pose.pose = marker.pose;
   return pose;
 }
