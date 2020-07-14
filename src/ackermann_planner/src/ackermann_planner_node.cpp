@@ -11,7 +11,6 @@ int main(int argc, char **argv) {
   ros::Rate loop_rate(20);
   ROS_INFO("Init planner node\n");
   while (ros::ok()) {
-    latticePlanner.visualizationLoopTEST();
     ros::spinOnce();
     loop_rate.sleep();
   }

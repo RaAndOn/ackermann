@@ -23,6 +23,9 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
       "visualization_marker", 1);
   m_pathPub = m_publicNH.advertise<nav_msgs::Path>(m_pathTopic, 1);
 
+  m_planPathSrv =
+      m_publicNH.advertiseService("plan_path", &LatticePlanner::planPath, this);
+
   MotionPrimitive motionPrimitive{m_wheelbase, m_velocity, m_dt,
                                   m_discretizationDegrees,
                                   m_steeringIncrements};
@@ -65,64 +68,38 @@ void LatticePlanner::initializeMarkers() {
   m_reverseMarker.scale.z = 0.15;
 }
 
-void LatticePlanner::visualizationLoopTEST() {
+bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
+                              ackermann_planner::Goal::Response &res) {
   visualization_msgs::MarkerArray markerArray;
-  int markerID = 0;
-  // State state{m_markerID, 0, 0, 0, Gear::FORWARD};
-  // addMarkerToArray(markerArray, state);
-  // ++m_markerID;
-
-  // for (int i = 1; i < 150; ++i) {
-  //   state.m_id = i;
-  //   state.m_x +=
-  //       m_motionPrimitivesVector[1].m_deltaX * std::cos(state.m_theta) -
-  //       m_motionPrimitivesVector[1].m_deltaY * std::sin(state.m_theta);
-  //   state.m_y +=
-  //       m_motionPrimitivesVector[1].m_deltaX * std::sin(state.m_theta) +
-  //       m_motionPrimitivesVector[1].m_deltaY * std::cos(state.m_theta);
-  //   state.m_theta = ackermann::wrapToPi(
-  //       state.m_theta + m_motionPrimitivesVector[1].m_deltaTheta);
-  //   // ROS_INFO("Steer Angle %s", std::to_string(state.m_theta).c_str());
-  //   addMarkerToArray(markerArray, state);
-  // }
-
-  // for (const auto primitive : m_motionPrimitivesVector) {
-  //   Gear gear = (primitive.m_deltaX > 0) ? Gear::FORWARD : Gear::REVERSE;
-  //   State state{primitive.m_deltaX, primitive.m_deltaY,
-  //   primitive.m_deltaTheta,
-  //               gear};
-  //   addMarkerToArray(markerArray, state);
-  //   ++m_markerID;
-  // }
-
-  ROS_INFO("angularResolutionDegrees: %s",
-           std::to_string(m_angularResolutionDegrees).c_str());
-
-  ROS_INFO("distanceResolution: %s",
-           std::to_string(m_distanceResolution).c_str());
+  nav_msgs::Path pathMsg;
 
   AStar planner{m_motionPrimitivesVector, m_distanceThreshold,
                 m_angularThresholdDegrees, m_distanceResolution,
                 m_angularResolutionDegrees};
 
   State startState{0, 0, 0, Gear::FORWARD};
-  State goalState{-10, 20, 0, Gear::FORWARD};
+  State goalState{req.x, req.y, req.thetaDegrees * M_PI / 180, Gear::FORWARD};
 
   auto path = planner.astar(startState, goalState, 1, "Euclidean", "Euclidean");
   if (path) {
+    res.success = true;
     for (const auto &state : path.get()) {
-      addMarkerToArray(markerArray, state);
-      ++markerID;
+      auto pose = addMarkerToArray(markerArray, state);
+      pathMsg.poses.push_back(pose);
     }
   } else {
+    res.success = false;
     ROS_ERROR("No path found");
   }
 
   m_visualizationPub.publish(markerArray);
+  m_pathPub.publish(pathMsg);
+  return true;
 }
 
-void LatticePlanner::addMarkerToArray(
-    visualization_msgs::MarkerArray &markerArray, const State &state) {
+geometry_msgs::PoseStamped
+LatticePlanner::addMarkerToArray(visualization_msgs::MarkerArray &markerArray,
+                                 const State &state) {
   // Initialize marker shape based on the gear
   visualization_msgs::Marker marker;
   if (state.m_gear == Gear::FORWARD) {
@@ -143,6 +120,8 @@ void LatticePlanner::addMarkerToArray(
 
   // Add marker to marker array
   markerArray.markers.push_back(marker);
-}
 
-void LatticePlanner::reset() {}
+  geometry_msgs::PoseStamped pose;
+  pose.pose = marker.pose;
+  return pose;
+}
