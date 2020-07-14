@@ -24,7 +24,7 @@
 
   <!-- Controller Arguments -->
   <arg name="controller_look_ahead_distance" default="10.0" /> <!-- m -->
-  <arg name="controller_velocity" default="5.0" /> <!-- m/s -->
+  <arg name="controller_velocity" default="$(arg planner_velocity)" /> <!-- m/s -->
 
 
   <arg name="model" default="$(find ackermann_project)/config/ackermann.urdf.xacro"/>
