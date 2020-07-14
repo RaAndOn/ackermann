@@ -13,6 +13,7 @@
   <!-- Topic names -->
   <arg name="vehicle_odom_topic" default="ground_truth" />
   <arg name="vehicle_control_topic" default="cmd_vel" />
+  <arg name="vehicle_path_topic" default="path" />
 
   <!-- Planner Arguments -->
   <arg name="planner_dt" default=".1" />
@@ -54,6 +55,7 @@
       <param name="velocity" type="double" value="$(arg planner_velocity)" />
       <param name="angular_threshold_degrees" type="double" value="$(arg planner_angular_threshold_degrees)" />
       <param name="distance_threshold_meters" type="double" value="$(arg planner_distance_threshold)" />
+      <param name="vehicle_path_topic" type="str" value="$(arg vehicle_path_topic)" />
     </node>
 
     <node name="ackermann_controller_node" pkg="ackermann_controller" type="ackermann_controller_node" output=
@@ -62,6 +64,7 @@
       <param name="velocity" type="double" value="$(arg controller_velocity)" />
       <param name="vehicle_odom_topic" type="str" value="$(arg vehicle_odom_topic)" />
       <param name="vehicle_control_topic" type="str" value="$(arg vehicle_control_topic)" />
+      <param name="vehicle_path_topic" type="str" value="$(arg vehicle_path_topic)" />
     </node>
 
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" />

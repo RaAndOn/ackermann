@@ -18,9 +18,11 @@ public:
   void visualizationLoopTEST();
 
 private:
-  ros::Publisher m_pubVisualization;
   ros::NodeHandle m_privateNH;
   ros::NodeHandle m_publicNH;
+
+  ros::Publisher m_visualizationPub;
+  ros::Publisher m_pathPub;
 
   visualization_msgs::Marker m_reverseMarker;
   visualization_msgs::Marker m_forwardMarker;
@@ -37,7 +39,7 @@ private:
   double m_angularThresholdDegrees;
   double m_distanceThreshold;
 
-  int m_markerID;
+  std::string m_pathTopic;
 
   /// @brief This function initializes the reverse and forward markers so they
   /// look correct. This is because ROS is dumb sometimes and it takes like 20

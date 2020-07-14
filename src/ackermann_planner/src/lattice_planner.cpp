@@ -1,3 +1,4 @@
+#include <nav_msgs/Path.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <ackermann_planner/lattice_planner.hpp>
@@ -16,11 +17,11 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
   m_privateNH.param("angular_threshold_degrees", m_angularThresholdDegrees,
                     15.0);
   m_privateNH.param("distance_threshold_meters", m_distanceThreshold, 1.0);
+  m_privateNH.param<std::string>("vehicle_path_topic", m_pathTopic, "path");
   // Set publishers and subscribers
-  m_pubVisualization = m_publicNH.advertise<visualization_msgs::MarkerArray>(
-      "visualization_marker", 0);
-
-  m_markerID = 0;
+  m_visualizationPub = m_publicNH.advertise<visualization_msgs::MarkerArray>(
+      "visualization_marker", 1);
+  m_pathPub = m_publicNH.advertise<nav_msgs::Path>(m_pathTopic, 1);
 
   MotionPrimitive motionPrimitive{m_wheelbase, m_velocity, m_dt,
                                   m_discretizationDegrees,
@@ -66,7 +67,7 @@ void LatticePlanner::initializeMarkers() {
 
 void LatticePlanner::visualizationLoopTEST() {
   visualization_msgs::MarkerArray markerArray;
-  m_markerID = 0;
+  int markerID = 0;
   // State state{m_markerID, 0, 0, 0, Gear::FORWARD};
   // addMarkerToArray(markerArray, state);
   // ++m_markerID;
@@ -111,13 +112,13 @@ void LatticePlanner::visualizationLoopTEST() {
   if (path) {
     for (const auto &state : path.get()) {
       addMarkerToArray(markerArray, state);
-      ++m_markerID;
+      ++markerID;
     }
   } else {
     ROS_ERROR("No path found");
   }
 
-  m_pubVisualization.publish(markerArray);
+  m_visualizationPub.publish(markerArray);
 }
 
 void LatticePlanner::addMarkerToArray(
