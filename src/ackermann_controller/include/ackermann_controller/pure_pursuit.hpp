@@ -1,6 +1,5 @@
 #pragma once
 
-#include <boost/optional.hpp>
 #include <mutex>
 
 #include <ros/ros.h>
@@ -31,7 +30,7 @@ private:
   std::mutex m_controllerMutex;
 
   nav_msgs::Odometry m_vehicleState;
-  boost::optional<nav_msgs::Path> m_path;
+  nav_msgs::Path m_path;
 
   double m_lookAheadDistance;
   double m_velocity;
@@ -40,9 +39,16 @@ private:
   std::string m_vehicleControlTopic;
   std::string m_pathTopic;
 
+  /// @brief Updates the vehicle state and provides a vehicle control command if
+  /// there is a path to follow.
   void controlCallback(const nav_msgs::Odometry &odom);
+
+  /// @brief executes the Pure Pursuit algorithm as detailed in
+  /// `pure_pursuit.pdf`
+  void purePursuit();
 
   void pathCallback(const nav_msgs::Path &path);
 
-  bool findClosestPointOnPath();
+  /// @brief
+  int findIndexOfClosestPointOnPath();
 };
