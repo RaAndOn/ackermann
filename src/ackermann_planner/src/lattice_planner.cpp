@@ -96,10 +96,10 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
                 m_angularThresholdDegrees, m_distanceResolution,
                 m_angularResolutionDegrees};
 
-  State startState{0, 0, 0, Gear::FORWARD};
   State goalState{req.x, req.y, req.thetaDegrees * M_PI / 180, Gear::FORWARD};
 
-  auto path = planner.astar(startState, goalState, 1, "Euclidean", "Euclidean");
+  auto path =
+      planner.astar(m_vehicleState, goalState, 1, "Euclidean", "Euclidean");
   if (path) {
     res.success = true;
     for (const auto &state : path.get()) {
