@@ -89,8 +89,11 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
                               ackermann_planner::Goal::Response &res) {
   std::lock_guard<std::mutex> planLock(m_plannerMutex);
 
+  // Initialize variables
   visualization_msgs::MarkerArray markerArray;
   nav_msgs::Path pathMsg;
+  pathMsg.header.frame_id = m_vehicleOdomTopic;
+  pathMsg.header.stamp = ros::Time::now();
 
   AStar planner{m_motionPrimitivesVector, m_distanceThreshold,
                 m_angularThresholdDegrees, m_distanceResolution,
@@ -98,8 +101,11 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
 
   State goalState{req.x, req.y, req.thetaDegrees * M_PI / 180, Gear::FORWARD};
 
+  // Find path to goal
   auto path =
       planner.astar(m_vehicleState, goalState, 1, "Euclidean", "Euclidean");
+
+  // Full marker array and path with states
   if (path) {
     res.success = true;
     for (const auto &state : path.get()) {
@@ -111,6 +117,7 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
     ROS_ERROR("No path found");
   }
 
+  // Publish path
   m_visualizationPub.publish(markerArray);
   m_pathPub.publish(pathMsg);
   return true;
@@ -141,6 +148,7 @@ LatticePlanner::addMarkerToArray(visualization_msgs::MarkerArray &markerArray,
   markerArray.markers.push_back(marker);
 
   geometry_msgs::PoseStamped pose;
+  pose.header.frame_id = m_vehicleOdomTopic;
   pose.header.stamp = ros::Time::now();
   pose.pose = marker.pose;
   return pose;
