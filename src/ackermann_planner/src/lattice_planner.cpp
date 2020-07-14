@@ -8,9 +8,7 @@
 // Point x -- east, y -- north and z -- up yaw
 LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
                                ros::NodeHandle &publicNH)
-    : m_privateNH{privateNH}, m_publicNH{publicNH}, m_vehicleState{
-                                                        0, 0, 0,
-                                                        Gear::FORWARD} {
+    : m_privateNH{privateNH}, m_publicNH{publicNH} {
   // Get parameters from Param server
   m_privateNH.param("wheelbase", m_wheelbase, 3.0);
   m_privateNH.param("dt", m_dt, .1);
@@ -49,12 +47,9 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
 LatticePlanner::~LatticePlanner() = default;
 
 void LatticePlanner::updateStateCallback(const nav_msgs::Odometry &odom) {
-  std::lock_guard<std::mutex> gpsLock(m_plannerMutex);
+  std::lock_guard<std::mutex> plannerLock(m_plannerMutex);
 
-  m_vehicleState.m_x = odom.pose.pose.position.x;
-  m_vehicleState.m_y = odom.pose.pose.position.y;
-
-  m_vehicleState.m_theta = tf2::getYaw(odom.pose.pose.orientation);
+  m_vehicleState = odom;
 }
 
 void LatticePlanner::initializeMarkers() {
@@ -87,7 +82,7 @@ void LatticePlanner::initializeMarkers() {
 
 bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
                               ackermann_planner::Goal::Response &res) {
-  std::lock_guard<std::mutex> planLock(m_plannerMutex);
+  std::lock_guard<std::mutex> plannerLock(m_plannerMutex);
 
   // Initialize variables
   visualization_msgs::MarkerArray markerArray;
@@ -99,11 +94,15 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
                 m_angularThresholdDegrees, m_distanceResolution,
                 m_angularResolutionDegrees};
 
+  double startX{m_vehicleState.pose.pose.position.x};
+  double startY{m_vehicleState.pose.pose.position.y};
+  double startTheta{tf2::getYaw(m_vehicleState.pose.pose.orientation)};
+  State startState{startX, startY, startTheta, Gear::FORWARD};
+
   State goalState{req.x, req.y, req.thetaDegrees * M_PI / 180, Gear::FORWARD};
 
   // Find path to goal
-  auto path =
-      planner.astar(m_vehicleState, goalState, 1, "Euclidean", "Euclidean");
+  auto path = planner.astar(startState, goalState, 1, "Euclidean", "Euclidean");
 
   // Full marker array and path with states
   if (path) {

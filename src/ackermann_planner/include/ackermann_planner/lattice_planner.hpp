@@ -48,7 +48,7 @@ private:
 
   std::mutex m_plannerMutex;
 
-  State m_vehicleState;
+  nav_msgs::Odometry m_vehicleState;
 
   /// @brief This function initializes the reverse and forward markers so they
   /// look correct. This is because ROS is dumb sometimes and it takes like 20

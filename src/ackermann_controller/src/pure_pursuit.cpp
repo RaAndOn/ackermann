@@ -1,4 +1,5 @@
 #include <geometry_msgs/TwistStamped.h>
+#include <tf2/utils.h>
 
 #include <ackermann_controller/pure_pursuit.hpp>
 
@@ -13,7 +14,7 @@ PurePursuit::PurePursuit(ros::NodeHandle &privateNH, ros::NodeHandle &publicNH)
   m_privateNH.param("velocity", m_velocity, 5.0);
 
   m_vehicleSub = m_publicNH.subscribe(m_vehicleOdomTopic, 1,
-                                      &PurePursuit::controlCallback, this);
+                                      &PurePursuit::updateStateCallback, this);
   m_pathSub =
       m_publicNH.subscribe(m_pathTopic, 1, &PurePursuit::pathCallback, this);
 
@@ -25,4 +26,11 @@ PurePursuit::~PurePursuit() = default;
 
 void PurePursuit::controlCallback(const nav_msgs::Odometry &odom) {}
 
+void PurePursuit::updateStateCallback(const nav_msgs::Odometry &odom) {
+  std::lock_guard<std::mutex> controllerLock(m_controllerMutex);
+  m_vehicleState = odom;
+}
+
 void PurePursuit::pathCallback(const nav_msgs::Path &path) {}
+
+nav_msgs::Odometry findClosestPointOnPath(const nav_msgs::Path &path) {}
