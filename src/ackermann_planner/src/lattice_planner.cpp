@@ -5,7 +5,6 @@
 #include <ackermann_planner/lattice_planner.hpp>
 #include <ackermann_project/ackermann_utils.hpp>
 
-// Point x -- east, y -- north and z -- up yaw
 LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
                                ros::NodeHandle &publicNH)
     : m_privateNH{privateNH}, m_publicNH{publicNH} {

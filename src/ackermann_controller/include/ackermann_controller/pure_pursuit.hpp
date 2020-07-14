@@ -21,10 +21,12 @@ private:
   ros::Subscriber m_pathSub;
 
   ros::Publisher m_controlPub;
+  ros::Publisher m_pathPub;
 
   std::mutex m_controllerMutex;
 
   nav_msgs::Odometry m_vehicleState;
+  nav_msgs::Path m_path;
 
   double m_lookAheadDistance;
   double m_velocity;
@@ -37,7 +39,5 @@ private:
 
   void pathCallback(const nav_msgs::Path &path);
 
-  nav_msgs::Odometry findClosestPointOnPath(const nav_msgs::Path &path);
-
-  void updateStateCallback(const nav_msgs::Odometry &odom);
+  std::vector<geometry_msgs::PoseStamped>::iterator findClosestPointOnPath();
 };

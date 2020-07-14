@@ -14,23 +14,39 @@ PurePursuit::PurePursuit(ros::NodeHandle &privateNH, ros::NodeHandle &publicNH)
   m_privateNH.param("velocity", m_velocity, 5.0);
 
   m_vehicleSub = m_publicNH.subscribe(m_vehicleOdomTopic, 1,
-                                      &PurePursuit::updateStateCallback, this);
+                                      &PurePursuit::controlCallback, this);
   m_pathSub =
       m_publicNH.subscribe(m_pathTopic, 1, &PurePursuit::pathCallback, this);
 
   m_controlPub = m_publicNH.advertise<geometry_msgs::TwistStamped>(
       m_vehicleControlTopic, 1);
+  m_pathPub = m_publicNH.advertise<nav_msgs::Path>(m_pathTopic, 1);
 }
 
 PurePursuit::~PurePursuit() = default;
 
-void PurePursuit::controlCallback(const nav_msgs::Odometry &odom) {}
-
-void PurePursuit::updateStateCallback(const nav_msgs::Odometry &odom) {
+void PurePursuit::controlCallback(const nav_msgs::Odometry &odom) {
   std::lock_guard<std::mutex> controllerLock(m_controllerMutex);
   m_vehicleState = odom;
+
+  auto currentPose = PurePursuit::findClosestPointOnPath();
+
+  for (auto pathIt = m_path.poses.begin(); pathIt != currentPose; ++pathIt) {
+    m_path.poses.erase(pathIt);
+  }
+  m_pathPub.publish(m_path);
 }
 
-void PurePursuit::pathCallback(const nav_msgs::Path &path) {}
+void PurePursuit::pathCallback(const nav_msgs::Path &path) {
+  std::lock_guard<std::mutex> controllerLock(m_controllerMutex);
+  m_path = path;
+}
 
-nav_msgs::Odometry findClosestPointOnPath(const nav_msgs::Path &path) {}
+std::vector<geometry_msgs::PoseStamped>::iterator
+PurePursuit::findClosestPointOnPath() {
+  double startX{m_vehicleState.pose.pose.position.x};
+  double startY{m_vehicleState.pose.pose.position.y};
+  double startTheta{tf2::getYaw(m_vehicleState.pose.pose.orientation)};
+
+  return m_path.poses.begin();
+}
