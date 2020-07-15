@@ -92,7 +92,7 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
 
   ros::NodeHandle m_nh(m_robotNamespace);
 
-  m_controlSub = m_nh.subscribe("cmd_vel", 1,
+  m_controlSub = m_nh.subscribe(vehicleControlTopic, 1,
                                 &AckermannControlPlugin::controlCallback, this);
 
   m_steeringPub = m_nh.advertise<ackermann_msgs::AckermannSteering>(
