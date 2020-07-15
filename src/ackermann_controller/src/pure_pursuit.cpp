@@ -93,7 +93,8 @@ void PurePursuit::purePursuit() {
   while (notDone) {
     try {
       transform = m_tfBuffer.lookupTransform(
-          "base_link", "ground_truth", ros::Time::now(), ros::Duration(0.0));
+          "base_link", "ground_truth", ros::Time::now() - ros::Duration(0.5),
+          ros::Duration(0.0));
       tf2::doTransform(lookAheadPoseOdom, lookAheadPoseRobot, transform);
       notDone = false;
     } catch (tf2::TransformException &ex) {
