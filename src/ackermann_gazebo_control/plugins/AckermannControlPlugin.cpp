@@ -216,7 +216,7 @@ void AckermannControlPlugin::OnUpdate() {
   double wheelForceCmd = m_wheelAngularVelocityPID.Update(velocityError, dt);
 
   // Check that velocity error is large enough to apply a force
-  if (std::abs(velocityError) > 0.1) {
+  if (std::abs(velocityError) > 0.005) {
     // Send the new force to both wheels
     // "0" is the index zero-indexed value of the roll position
     // TODO: Figure out what "0" means
