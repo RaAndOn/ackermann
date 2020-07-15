@@ -34,28 +34,31 @@ void PurePursuit::controlCallback(const nav_msgs::Odometry &odom) {
   m_vehicleState = odom;
 
   // Only send control messages if there is a path to follow
-  if (not m_path.poses.empty()) {
+  if (not m_path.empty()) {
     purePursuit();
   }
 }
 
 void PurePursuit::purePursuit() {
   // Find the closest point on the path
-  int indexOfClosestPoint = PurePursuit::findIndexOfClosestPointOnPath();
-  // Remove all previous points on the path
-  for (int i = 0; i < indexOfClosestPoint; ++i) {
-    m_path.poses.erase(m_path.poses.begin());
-  }
+  int closestPointIndex = PurePursuit::findIndexOfClosestPointOnPath();
+  // Remove points on the path which have been passed
+  m_path.erase(m_path.begin(), m_path.begin() + closestPointIndex);
 
-  // Publish updated path
-  m_pathPub.publish(m_path);
-
-  if (m_path.poses.empty()) {
-    // Command zero velocity
+  if (m_path.size() <= 1) {
+    // Clear path and command zero velocity
+    m_path.clear();
     geometry_msgs::TwistStamped cmd;
     m_controlPub.publish(cmd);
     return;
   }
+
+  // Publish updated path
+  nav_msgs::Path updatedPath;
+  updatedPath.header.frame_id = m_vehicleOdomTopic;
+  updatedPath.header.stamp = ros::Time::now();
+  updatedPath.poses = m_path;
+  m_pathPub.publish(updatedPath);
 
   // Initialize variables for finding look ahead point
   double vehicleX{m_vehicleState.pose.pose.position.x};
@@ -66,10 +69,10 @@ void PurePursuit::purePursuit() {
   // This handles the situation where the end of the path is less than a look
   // ahead distance away
   geometry_msgs::PoseStamped lookAheadPoseOdom;
-  lookAheadPoseOdom = m_path.poses.back();
+  lookAheadPoseOdom = m_path.back();
 
   // Find look ahead point
-  for (auto pose : m_path.poses) {
+  for (auto pose : m_path) {
     poseDistance = std::sqrt(std::pow(pose.pose.position.x - vehicleX, 2.0) +
                              std::pow(pose.pose.position.y - vehicleY, 2.0));
     if (poseDistance > m_lookAheadDistance) {
@@ -78,7 +81,7 @@ void PurePursuit::purePursuit() {
     }
   }
 
-  // If nearest point is less than a look ahead distance away, stay the course
+  // If last point is less than a look ahead distance away, stay the course
   if (poseDistance < m_lookAheadDistance) {
     geometry_msgs::TwistStamped cmd;
     cmd.twist.linear.x = m_velocity;
@@ -116,13 +119,12 @@ void PurePursuit::purePursuit() {
   geometry_msgs::TwistStamped cmd;
   cmd.twist.linear.x = m_velocity;
   cmd.twist.angular.z = steeringAngle;
-
   m_controlPub.publish(cmd);
 }
 
 void PurePursuit::pathCallback(const nav_msgs::Path &path) {
   std::lock_guard<std::mutex> controllerLock(m_controllerMutex);
-  m_path = path;
+  m_path = path.poses;
 }
 
 int PurePursuit::findIndexOfClosestPointOnPath() {
@@ -131,26 +133,23 @@ int PurePursuit::findIndexOfClosestPointOnPath() {
   double vehicleY{m_vehicleState.pose.pose.position.y};
   double vehicleTheta{tf2::getYaw(m_vehicleState.pose.pose.orientation)};
 
-  // Get the distance of the vehicle from the first point on the path
-  auto pathIt = m_path.poses.begin();
-  auto minDistanceToPath{
-      std::sqrt(std::pow(pathIt->pose.position.x - vehicleX, 2.0) +
-                std::pow(pathIt->pose.position.y - vehicleY, 2.0))};
+  // Initialize variables
+  auto closestPointIt = m_path.begin();
+  double minDistanceToPath{__DBL_MAX__};
 
-  // Choose the closest point as the previous point from the first point on
-  // the path to get farther from the vehicle than the point point before
-  while (pathIt != m_path.poses.end()) {
-    ++pathIt;
+  // The closest point is the last point to be closer to the vehicle than the
+  // previous point
+  for (auto pathIt = m_path.begin(); pathIt != m_path.end(); ++pathIt) {
     auto distanceToPoint{
         std::sqrt(std::pow(pathIt->pose.position.x - vehicleX, 2.0) +
                   std::pow(pathIt->pose.position.y - vehicleY, 2.0))};
     if (distanceToPoint > minDistanceToPath) {
-      --pathIt;
       break;
     }
+    closestPointIt = pathIt;
     minDistanceToPath = distanceToPoint;
   }
 
   // Distance from the first pointer to the closest point pointer
-  return std::distance(m_path.poses.begin(), pathIt);
+  return std::distance(m_path.begin(), closestPointIt);
 }
