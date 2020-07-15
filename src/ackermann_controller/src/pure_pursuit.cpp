@@ -92,9 +92,11 @@ void PurePursuit::purePursuit() {
   bool notDone{true};
   while (notDone) {
     try {
-      transform = m_tfBuffer.lookupTransform(
-          "base_link", "ground_truth", ros::Time::now() - ros::Duration(0.5),
-          ros::Duration(0.0));
+      // Get the latest transform, as indicated by ros::Time(0)
+      // TODO: Decide if latest transform is best. Waiting for a transform was
+      // proving too slow
+      transform = m_tfBuffer.lookupTransform("base_link", "ground_truth",
+                                             ros::Time(0), ros::Duration(0.0));
       tf2::doTransform(lookAheadPoseOdom, lookAheadPoseRobot, transform);
       notDone = false;
     } catch (tf2::TransformException &ex) {
