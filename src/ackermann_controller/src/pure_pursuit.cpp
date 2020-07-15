@@ -45,12 +45,9 @@ void PurePursuit::purePursuit() {
   // Remove points on the path which have been passed
   m_path.erase(m_path.begin(), m_path.begin() + closestPointIndex);
 
+  // Clear path if one point is left
   if (m_path.size() <= 1) {
-    // Clear path and command zero velocity
     m_path.clear();
-    geometry_msgs::TwistStamped cmd;
-    m_controlPub.publish(cmd);
-    return;
   }
 
   // Publish updated path
@@ -59,6 +56,13 @@ void PurePursuit::purePursuit() {
   updatedPath.header.stamp = ros::Time::now();
   updatedPath.poses = m_path;
   m_pathPub.publish(updatedPath);
+
+  // Command vehicle to stop if path is empty
+  if (m_path.empty()) {
+    geometry_msgs::TwistStamped cmd;
+    m_controlPub.publish(cmd);
+    return;
+  }
 
   // Initialize variables for finding look ahead point
   double vehicleX{m_vehicleState.pose.pose.position.x};
