@@ -1,9 +1,10 @@
+#include <nav_msgs/Path.h>
+#include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <ackermann_planner/lattice_planner.hpp>
 #include <ackermann_project/ackermann_utils.hpp>
 
-// Point x -- east, y -- north and z -- up yaw
 LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
                                ros::NodeHandle &publicNH)
     : m_privateNH{privateNH}, m_publicNH{publicNH} {
@@ -16,11 +17,19 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
   m_privateNH.param("angular_threshold_degrees", m_angularThresholdDegrees,
                     15.0);
   m_privateNH.param("distance_threshold_meters", m_distanceThreshold, 1.0);
+  m_privateNH.param<std::string>("vehicle_path_topic", m_pathTopic, "path");
+  m_privateNH.param<std::string>("vehicle_odom_topic", m_vehicleOdomTopic,
+                                 "ground_truth");
   // Set publishers and subscribers
-  m_pubVisualization = m_publicNH.advertise<visualization_msgs::MarkerArray>(
-      "visualization_marker", 0);
+  m_visualizationPub = m_publicNH.advertise<visualization_msgs::MarkerArray>(
+      "visualization_marker", 1);
+  m_pathPub = m_publicNH.advertise<nav_msgs::Path>(m_pathTopic, 1);
 
-  m_markerID = 0;
+  m_vehicleSub = m_publicNH.subscribe(
+      m_vehicleOdomTopic, 1, &LatticePlanner::updateStateCallback, this);
+
+  m_planPathSrv =
+      m_publicNH.advertiseService("plan_path", &LatticePlanner::planPath, this);
 
   MotionPrimitive motionPrimitive{m_wheelbase, m_velocity, m_dt,
                                   m_discretizationDegrees,
@@ -36,8 +45,14 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
 
 LatticePlanner::~LatticePlanner() = default;
 
+void LatticePlanner::updateStateCallback(const nav_msgs::Odometry &odom) {
+  std::lock_guard<std::mutex> plannerLock(m_plannerMutex);
+
+  m_vehicleState = odom;
+}
+
 void LatticePlanner::initializeMarkers() {
-  m_forwardMarker.header.frame_id = "ground_truth";
+  m_forwardMarker.header.frame_id = m_vehicleOdomTopic;
   m_forwardMarker.header.stamp = ros::Time();
   // marker.ns = "my_namespace";
   m_forwardMarker.id = 0;
@@ -64,64 +79,51 @@ void LatticePlanner::initializeMarkers() {
   m_reverseMarker.scale.z = 0.15;
 }
 
-void LatticePlanner::visualizationLoopTEST() {
+bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
+                              ackermann_planner::Goal::Response &res) {
+  std::lock_guard<std::mutex> plannerLock(m_plannerMutex);
+
+  // Initialize variables
   visualization_msgs::MarkerArray markerArray;
-  m_markerID = 0;
-  // State state{m_markerID, 0, 0, 0, Gear::FORWARD};
-  // addMarkerToArray(markerArray, state);
-  // ++m_markerID;
-
-  // for (int i = 1; i < 150; ++i) {
-  //   state.m_id = i;
-  //   state.m_x +=
-  //       m_motionPrimitivesVector[1].m_deltaX * std::cos(state.m_theta) -
-  //       m_motionPrimitivesVector[1].m_deltaY * std::sin(state.m_theta);
-  //   state.m_y +=
-  //       m_motionPrimitivesVector[1].m_deltaX * std::sin(state.m_theta) +
-  //       m_motionPrimitivesVector[1].m_deltaY * std::cos(state.m_theta);
-  //   state.m_theta = ackermann::wrapToPi(
-  //       state.m_theta + m_motionPrimitivesVector[1].m_deltaTheta);
-  //   // ROS_INFO("Steer Angle %s", std::to_string(state.m_theta).c_str());
-  //   addMarkerToArray(markerArray, state);
-  // }
-
-  // for (const auto primitive : m_motionPrimitivesVector) {
-  //   Gear gear = (primitive.m_deltaX > 0) ? Gear::FORWARD : Gear::REVERSE;
-  //   State state{primitive.m_deltaX, primitive.m_deltaY,
-  //   primitive.m_deltaTheta,
-  //               gear};
-  //   addMarkerToArray(markerArray, state);
-  //   ++m_markerID;
-  // }
-
-  ROS_INFO("angularResolutionDegrees: %s",
-           std::to_string(m_angularResolutionDegrees).c_str());
-
-  ROS_INFO("distanceResolution: %s",
-           std::to_string(m_distanceResolution).c_str());
+  nav_msgs::Path pathMsg;
+  pathMsg.header.frame_id = m_vehicleOdomTopic;
+  pathMsg.header.stamp = ros::Time::now();
 
   AStar planner{m_motionPrimitivesVector, m_distanceThreshold,
                 m_angularThresholdDegrees, m_distanceResolution,
                 m_angularResolutionDegrees};
 
-  State startState{0, 0, 0, Gear::FORWARD};
-  State goalState{-10, 20, 0, Gear::FORWARD};
+  double startX{m_vehicleState.pose.pose.position.x};
+  double startY{m_vehicleState.pose.pose.position.y};
+  double startTheta{tf2::getYaw(m_vehicleState.pose.pose.orientation)};
+  State startState{startX, startY, startTheta, Gear::FORWARD};
 
+  State goalState{req.x, req.y, req.thetaDegrees * M_PI / 180, Gear::FORWARD};
+
+  // Find path to goal
   auto path = planner.astar(startState, goalState, 1, "Euclidean", "Euclidean");
+
+  // Full marker array and path with states
   if (path) {
+    res.success = true;
     for (const auto &state : path.get()) {
-      addMarkerToArray(markerArray, state);
-      ++m_markerID;
+      auto pose = addMarkerToArray(markerArray, state);
+      pathMsg.poses.push_back(pose);
     }
   } else {
+    res.success = false;
     ROS_ERROR("No path found");
   }
 
-  m_pubVisualization.publish(markerArray);
+  // Publish path
+  m_visualizationPub.publish(markerArray);
+  m_pathPub.publish(pathMsg);
+  return true;
 }
 
-void LatticePlanner::addMarkerToArray(
-    visualization_msgs::MarkerArray &markerArray, const State &state) {
+geometry_msgs::PoseStamped
+LatticePlanner::addMarkerToArray(visualization_msgs::MarkerArray &markerArray,
+                                 const State &state) {
   // Initialize marker shape based on the gear
   visualization_msgs::Marker marker;
   if (state.m_gear == Gear::FORWARD) {
@@ -142,6 +144,10 @@ void LatticePlanner::addMarkerToArray(
 
   // Add marker to marker array
   markerArray.markers.push_back(marker);
-}
 
-void LatticePlanner::reset() {}
+  geometry_msgs::PoseStamped pose;
+  pose.header.frame_id = m_vehicleOdomTopic;
+  pose.header.stamp = ros::Time::now();
+  pose.pose = marker.pose;
+  return pose;
+}

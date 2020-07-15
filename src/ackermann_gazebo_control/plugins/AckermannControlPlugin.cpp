@@ -73,20 +73,31 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
     ROS_ERROR("Parameter 'chassis_height' missing");
   }
 
+  std::string vehicleOdomTopic;
+  if (sdf->HasElement("vehicle_odom_topic")) {
+    vehicleOdomTopic = sdf->Get<std::string>("vehicle_odom_topic");
+  } else {
+    ROS_ERROR("Parameter 'vehicle_odom_topic' missing");
+  }
+  std::string vehicleControlTopic;
+  if (sdf->HasElement("vehicle_control_topic")) {
+    vehicleControlTopic = sdf->Get<std::string>("vehicle_control_topic");
+  } else {
+    ROS_ERROR("Parameter 'vehicle_control_topic' missing");
+  }
+
   // Define Ground Truth Origin for tf broadcast and RVIZ visualization
   m_groundTruthOrigin = m_baseLink->WorldCoGPose().Pos();
   m_groundTruthOrigin.Z() = chassisHeight - 2 * wheelRadius;
 
   ros::NodeHandle m_nh(m_robotNamespace);
-  m_controlSub = m_nh.subscribe("cmd_vel", 10,
+
+  m_controlSub = m_nh.subscribe(vehicleControlTopic, 1,
                                 &AckermannControlPlugin::controlCallback, this);
 
   m_steeringPub = m_nh.advertise<ackermann_msgs::AckermannSteering>(
       "ackermann/steering", 1);
-
-  m_groundTruthPub =
-      m_nh.advertise<nav_msgs::Odometry>("ackermann/ground_truth", 1);
-
+  m_groundTruthPub = m_nh.advertise<nav_msgs::Odometry>(vehicleOdomTopic, 1);
   m_jointPub = m_nh.advertise<sensor_msgs::JointState>("/joint_states", 1);
 
   // Initialize variables
@@ -160,6 +171,7 @@ void AckermannControlPlugin::OnUpdate() {
 
   // Initialize ground truth message
   nav_msgs::Odometry groundTruthOdom;
+  groundTruthOdom.header.frame_id = "ground_truth";
   groundTruthOdom.header.stamp = ros::Time::now();
 
   // Get current linear velocity of the vehicle
@@ -204,7 +216,8 @@ void AckermannControlPlugin::OnUpdate() {
   double wheelForceCmd = m_wheelAngularVelocityPID.Update(velocityError, dt);
 
   // Check that velocity error is large enough to apply a force
-  if (std::abs(velocityError) > 0.1) {
+  // This value was decided on via trial and error
+  if (std::abs(velocityError) > 0.005) {
     // Send the new force to both wheels
     // "0" is the index zero-indexed value of the roll position
     // TODO: Figure out what "0" means
@@ -298,10 +311,10 @@ void AckermannControlPlugin::controlCallback(
   m_desiredVelocity = cmd.twist.linear.x;
   // angular.z represents the desired steering angle of the vehicle (radians)
   m_desiredSteerAngle = cmd.twist.angular.z;
-  ROS_INFO("Desired Velocity: %s m/s",
-           std::to_string(m_desiredVelocity).c_str());
-  ROS_INFO("Desired Steer Angle: %s radians",
-           std::to_string(m_desiredSteerAngle).c_str());
+  // ROS_INFO("Desired Velocity: %s m/s",
+  //          std::to_string(m_desiredVelocity).c_str());
+  // ROS_INFO("Desired Steer Angle: %s radians",
+  //          std::to_string(m_desiredSteerAngle).c_str());
 
   // See `ackermann_geometry.pdf` for math
   m_desiredLeftWheelAngle = atan2(2 * m_l * sin(m_desiredSteerAngle),
@@ -311,10 +324,10 @@ void AckermannControlPlugin::controlCallback(
                                    2 * m_l * cos(m_desiredSteerAngle) +
                                        m_w * sin(m_desiredSteerAngle));
 
-  ROS_INFO("Desired Left Wheel Angle: %s radians",
-           std::to_string(m_desiredLeftWheelAngle).c_str());
-  ROS_INFO("Desired Right Wheel Angle: %s radians",
-           std::to_string(m_desiredRightWheelAngle).c_str());
+  // ROS_INFO("Desired Left Wheel Angle: %s radians",
+  //          std::to_string(m_desiredLeftWheelAngle).c_str());
+  // ROS_INFO("Desired Right Wheel Angle: %s radians",
+  //          std::to_string(m_desiredRightWheelAngle).c_str());
 }
 
 double AckermannControlPlugin::sign(const double num) const {
