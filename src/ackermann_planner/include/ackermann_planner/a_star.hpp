@@ -1,13 +1,10 @@
 #pragma once
 
-#include <boost/functional/hash.hpp>
 #include <boost/optional.hpp>
 #include <functional>
 #include <iostream>
 #include <queue> // std::priority_queue
 #include <unordered_map>
-#include <unordered_set>
-// #include <utility> // std::pair
 #include <vector> // std::vector
 
 #include <ros/ros.h>
@@ -43,9 +40,16 @@ class AStar {
 public:
   /// @brief Implementation of A* planner for an ackermann vehicle with X,Y
   /// position, steering angle of Theta.
-
-  /// It is assumed in the design of this class that the 2D array overwhich this
-  /// operates is 0 indexed and always positive
+  /// @param primitives vector of the primitives which are used for node
+  /// expansion
+  /// @param distanceThresholdMeters linear threshold for determing if two
+  /// states are close enough to be considered the same.
+  /// @param angularThresholdDegrees angular threshold for determing if two
+  /// states are close enough to be considered the same.
+  /// @param distanceResolutionMeters linear resolution used for discretizing
+  /// and indexing states
+  /// @param angularResolutionDegrees angular resolution used for discretizing
+  /// and indexing states
   AStar(const std::vector<Primitive> &primitives,
         const double distanceThresholdMeters,
         const double angularThresholdDegrees,
@@ -56,79 +60,57 @@ public:
 
   /// @brief This function performs an A* search using the given parameters to
   /// define the search parameters
+  /// @param startState State from which the search is starting
+  /// @param goalState State to which the search is planning
+  /// @param epsilon Amount to weight the heuristic
+  /// @param heuristicFunction Name of the heuristic function, which will be
+  /// mapped to a lambda variable
+  /// @param edgeCostFunction Name of the edge cost function, which will be
+  /// mapped to a lambda variable
+  /// @return Path from the start to goal state
   boost::optional<Path> astar(const State &startState, const State &goalState,
                               const int epsilon,
                               const std::string &heuristicFunction,
                               const std::string &edgeCostFunction);
 
-  /// @brief This is the Szudzik Pairing algorithm which takes a pair of
-  /// positive integers and makes them into a unique positive integer.
-  /// https://www.vertexfragment.com/ramblings/cantor-szudzik-pairing-functions/
-  inline NodeIndex szudzikPair(const NodeIndex x, const NodeIndex y) const {
-    return (x >= y ? (x * x) + x + y : (y * y) + x);
-  }
-
-  /// @brief This is a modified version of the Szudzik Pairing algorithm which
-  /// takes a pair of signed integers and makes them into a unique positive
-  /// integer.
-  /// https://www.vertexfragment.com/ramblings/cantor-szudzik-pairing-functions/
-  inline NodeIndex signedSzudzikPair(const NodeIndex x,
-                                     const NodeIndex y) const {
-    // Modification to Sudzik Pairing algorithm for negative numbers
-    const NodeIndex a = (x >= 0.0 ? 2.0 * x : (-2.0 * x) - 1.0);
-    const NodeIndex b = (y >= 0.0 ? 2.0 * y : (-2.0 * y) - 1.0);
-    // Szudzik Pairing Algorithm
-    return szudzikPair(a, b);
-    // * 0.5 <- Removed to ensure numbers are ints
-  }
-
-  /// @brief This function computes a unique index for a state
-  /// The state is rounded based on the resolution
-  inline NodeIndex hashFunction(const State &state) const {
-    // Make theta positive so we can use szudzik and get a tighter packing
-    const NodeIndex theta{
-        static_cast<int>((state.m_theta + M_PI) / m_angularResolution)};
-    if (theta < 0) {
-      ROS_ERROR("Theta is negative");
-      throw "";
-    }
-    const int x{static_cast<int>(state.m_x / m_distanceResolution)};
-    const int y{static_cast<int>(state.m_y / m_distanceResolution)};
-
-    const NodeIndex index1{signedSzudzikPair(x, y)};
-    if (index1 < 0) {
-      ROS_ERROR("index1 is negative");
-      throw "";
-    }
-    const NodeIndex index2{szudzikPair(index1, theta)};
-    if (index2 < 0) {
-      ROS_ERROR("ERROR: hashFunction Calculated "
-                "Node index is negative, "
-                "must be positive");
-      throw "";
-    }
-    return (state.m_gear == Gear::FORWARD) ? index2 : -index2;
-  };
-
 private:
-  OpenList m_openList;
+  /// @brief Node graph containing all nodes and their relationships
   Graph m_nodeGraph;
+
+  /// @brief Open list for tracking which state is to be expanded next
+  OpenList m_openList;
+
+  /// @brief Weight on the heuristic when calculating the F cost
   int m_epsilon;
+
+  /// @brief UNUSED
   int m_collisionThresh;
+
+  /// @brief Lambda function holding the chosen heuristic function
   Heuristic m_heuristicFunction;
+
+  /// @brief Lambda function holding the chosen edge cost function
   EdgeCost m_edgeCostFunction;
 
+  /// @brief Goal state which is being planned towards
   boost::optional<State> m_goalState;
+
+  /// @brief Index of the state which planning is starting from
   NodeIndex m_startIndex;
 
-  // Thresholds for determining if states are the same
-  double m_distanceThresholdSquared; // Meters
-  double m_angularThreshold;         // Radians
+  /// @brief Linear threshold for determining if states are the same (meters)
+  double m_distanceThresholdSquared;
 
-  // Resolution for discretizing state into integers
-  double m_distanceResolution; // Meters
-  double m_angularResolution;  // Radians
+  /// @brief Linear threshold for determining if states are the same (degrees)
+  double m_angularThreshold;
 
+  /// @brief Linea resolution for discretizing state into integers (meters)
+  double m_distanceResolution;
+
+  /// @brief Angular resolution for discretizing state into integers (radians)
+  double m_angularResolution;
+
+  /// @brief Vector of the primitives which are used for node expansion
   const std::vector<Primitive> m_primitives;
 
   /// @brief Given a node, this function finds any legitimate successors and
@@ -179,4 +161,55 @@ private:
     }
     return fCost;
   }
+
+  /// @brief This is the Szudzik Pairing algorithm which takes a pair of
+  /// positive integers and makes them into a unique positive integer.
+  /// https://www.vertexfragment.com/ramblings/cantor-szudzik-pairing-functions/
+  inline NodeIndex szudzikPair(const NodeIndex x, const NodeIndex y) const {
+    return (x >= y ? (x * x) + x + y : (y * y) + x);
+  }
+
+  /// @brief This is a modified version of the Szudzik Pairing algorithm which
+  /// takes a pair of signed integers and makes them into a unique positive
+  /// integer.
+  /// https://www.vertexfragment.com/ramblings/cantor-szudzik-pairing-functions/
+  inline NodeIndex signedSzudzikPair(const NodeIndex x,
+                                     const NodeIndex y) const {
+    // Modification to Sudzik Pairing algorithm for negative numbers
+    const NodeIndex a = (x >= 0.0 ? 2.0 * x : (-2.0 * x) - 1.0);
+    const NodeIndex b = (y >= 0.0 ? 2.0 * y : (-2.0 * y) - 1.0);
+    // Szudzik Pairing Algorithm
+    return szudzikPair(a, b);
+    // * 0.5 <- Removed to ensure numbers are ints
+  }
+
+  /// @brief This function computes a unique index for a state
+  /// The state is rounded based on the resolution
+  /// @param state which is being hashed
+  /// @return the index for the graph
+  inline NodeIndex hashFunction(const State &state) const {
+    // Make theta positive so we can use szudzik and get a tighter packing
+    const NodeIndex theta{
+        static_cast<int>((state.m_theta + M_PI) / m_angularResolution)};
+    if (theta < 0) {
+      ROS_ERROR("Theta is negative");
+      throw "";
+    }
+    const int x{static_cast<int>(state.m_x / m_distanceResolution)};
+    const int y{static_cast<int>(state.m_y / m_distanceResolution)};
+
+    const NodeIndex index1{signedSzudzikPair(x, y)};
+    if (index1 < 0) {
+      ROS_ERROR("index1 is negative");
+      throw "";
+    }
+    const NodeIndex index2{szudzikPair(index1, theta)};
+    if (index2 < 0) {
+      ROS_ERROR("ERROR: hashFunction Calculated "
+                "Node index is negative, "
+                "must be positive");
+      throw "";
+    }
+    return (state.m_gear == Gear::FORWARD) ? index2 : -index2;
+  };
 };
