@@ -85,14 +85,6 @@ void PurePursuit::purePursuit() {
     }
   }
 
-  // If last point is less than a look ahead distance away, stay the course
-  if (poseDistance < m_lookAheadDistance) {
-    geometry_msgs::TwistStamped cmd;
-    cmd.twist.linear.x = m_velocity;
-    m_controlPub.publish(cmd);
-    return;
-  }
-
   // Transform the look ahead pose from the world frame to the robot frame
   geometry_msgs::TransformStamped transform;
   geometry_msgs::PoseStamped lookAheadPoseRobot;
@@ -114,10 +106,8 @@ void PurePursuit::purePursuit() {
   }
 
   // Calculate steering angle based on pure pursuit algorithm
-  double steeringAngle{2 * lookAheadPoseRobot.pose.position.x /
+  double steeringAngle{2 * lookAheadPoseRobot.pose.position.y /
                        std::pow(poseDistance, 2.0)};
-  steeringAngle =
-      lookAheadPoseRobot.pose.position.y > 0 ? steeringAngle : -steeringAngle;
 
   // Publish command
   geometry_msgs::TwistStamped cmd;
