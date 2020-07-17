@@ -59,6 +59,7 @@
       <param name="angular_threshold_degrees" type="double" value="$(arg planner_angular_threshold_degrees)" />
       <param name="distance_threshold_meters" type="double" value="$(arg planner_distance_threshold)" />
       <param name="vehicle_path_topic" type="str" value="$(arg vehicle_path_topic)" />
+      <param name="vehicle_odom_topic" type="str" value="$(arg vehicle_odom_topic)" />
       <param name="epsilon" type="double" value="$(arg planner_epsilon)" />
       <param name="edge_cost_function" type="str" value="$(arg planner_edge_cost_function)" />
       <param name="heuristic" type="str" value="$(arg planner_heuristic)" />
