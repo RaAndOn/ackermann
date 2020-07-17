@@ -16,12 +16,15 @@
   <arg name="vehicle_path_topic" default="path" />
 
   <!-- Planner Arguments -->
-  <arg name="planner_dt" default=".1" />
+  <arg name="planner_dt" default=".5" />
   <arg name="planner_discretization_degrees" default="22.5" />
   <arg name="planner_steering_increments" default="1" />
-  <arg name="planner_velocity" default="5.0" /> <!-- m/s -->
+  <arg name="planner_velocity" default="1.0" /> <!-- m/s -->
   <arg name="planner_angular_threshold_degrees" default="15.0" /> <!-- degrees -->
   <arg name="planner_distance_threshold" default="1.0" /> <!-- m -->
+  <arg name="planner_epsilon" default="1.0" />
+  <arg name="planner_edge_cost_function" default="Euclidean" />
+  <arg name="planner_heuristic" default="Euclidean" />
 
   <!-- Controller Arguments -->
   <arg name="controller_look_ahead_distance" default="10.0" /> <!-- m -->
@@ -56,6 +59,9 @@
       <param name="angular_threshold_degrees" type="double" value="$(arg planner_angular_threshold_degrees)" />
       <param name="distance_threshold_meters" type="double" value="$(arg planner_distance_threshold)" />
       <param name="vehicle_path_topic" type="str" value="$(arg vehicle_path_topic)" />
+      <param name="epsilon" type="double" value="$(arg planner_epsilon)" />
+      <param name="edge_cost_function" type="str" value="$(arg planner_edge_cost_function)" />
+      <param name="heuristic" type="str" value="$(arg planner_heuristic)" />
     </node>
 
     <node name="ackermann_controller_node" pkg="ackermann_controller" type="ackermann_controller_node" output=

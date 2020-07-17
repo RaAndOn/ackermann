@@ -7,38 +7,49 @@
 
 LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
                                ros::NodeHandle &publicNH)
-    : m_privateNH{privateNH}, m_publicNH{publicNH} {
-  // Get parameters from Param server
-  m_privateNH.param("wheelbase", m_wheelbase, 3.0);
-  m_privateNH.param("dt", m_dt, .1);
-  m_privateNH.param("discretization_degrees", m_discretizationDegrees, 22.5);
-  m_privateNH.param("steering_increments", m_steeringIncrements, 1);
-  m_privateNH.param("velocity", m_velocity, 5.0);
-  m_privateNH.param("angular_threshold_degrees", m_angularThresholdDegrees,
-                    15.0);
-  m_privateNH.param("distance_threshold_meters", m_distanceThreshold, 1.0);
-  m_privateNH.param<std::string>("vehicle_path_topic", m_pathTopic, "path");
-  m_privateNH.param<std::string>("vehicle_odom_topic", m_vehicleOdomTopic,
-                                 "ground_truth");
-  // Set publishers and subscribers
+    : m_privateNH{privateNH}, m_publicNH{publicNH},
+      // Instantiate Motion Primitive Parameters
+      m_wheelbase{getROSParam(m_privateNH, "wheelbase", 3.0)},
+      m_discretizationDegrees{
+          getROSParam(m_privateNH, "discretization_degrees", 22.5)},
+      m_dt{getROSParam(m_privateNH, "dt", .5)},
+      m_steeringIncrements{getROSParam(m_privateNH, "steering_increments", 1)},
+      m_velocity{getROSParam(m_privateNH, "velocity", 1.0)},
+      // Instantiate Motion Primitives
+      m_motionPrimitiveCalc{m_wheelbase, m_velocity, m_dt,
+                            m_discretizationDegrees, m_steeringIncrements},
+      // Insantiate Search Parameters
+      m_motionPrimitivesVector{m_motionPrimitiveCalc.getMotionPrimitives()},
+      m_distanceResolution{m_motionPrimitiveCalc.getDistanceResolution()},
+      m_angularResolutionDegrees{m_motionPrimitiveCalc.getAngularResolution() *
+                                 180 / M_PI},
+      m_angularThresholdDegrees{
+          getROSParam(m_privateNH, "angular_threshold_degrees", 15.0)},
+      m_distanceThreshold{
+          getROSParam(m_privateNH, "distance_threshold_meters", 1.0)},
+      m_epsilon{getROSParam(m_privateNH, "epsilon", 1.0)},
+      m_heuristicFunction{
+          getROSParamString(m_privateNH, "heuristic", "Euclidean")},
+      m_edgeCostFunction{
+          getROSParamString(m_privateNH, "edge_cost_function", "ground_truth")},
+      // Instantiate Search Method
+      m_search{m_motionPrimitivesVector,   m_distanceThreshold,
+               m_angularThresholdDegrees,  m_distanceResolution,
+               m_angularResolutionDegrees, m_epsilon,
+               m_heuristicFunction,        m_edgeCostFunction},
+      // Instantiate Topic Names
+      m_pathTopic{getROSParamString(m_privateNH, "vehicle_path_topic", "path")},
+      m_vehicleOdomTopic{getROSParamString(m_privateNH, "vehicle_odom_topic",
+                                           "ground_truth")} {
+
+  // Set publishers and subscribers and services
   m_visualizationPub = m_publicNH.advertise<visualization_msgs::MarkerArray>(
       "visualization_marker", 1);
   m_pathPub = m_publicNH.advertise<nav_msgs::Path>(m_pathTopic, 1);
-
   m_vehicleSub = m_publicNH.subscribe(
       m_vehicleOdomTopic, 1, &LatticePlanner::updateStateCallback, this);
-
   m_planPathSrv =
       m_publicNH.advertiseService("plan_path", &LatticePlanner::planPath, this);
-
-  MotionPrimitive motionPrimitive{m_wheelbase, m_velocity, m_dt,
-                                  m_discretizationDegrees,
-                                  m_steeringIncrements};
-  m_motionPrimitivesVector = motionPrimitive.getMotionPrimitives();
-
-  m_distanceResolution = motionPrimitive.getDistanceResolution();
-  m_angularResolutionDegrees =
-      motionPrimitive.getAngularResolution() * 180 / M_PI;
 
   initializeMarkers();
 }
@@ -89,10 +100,6 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
   pathMsg.header.frame_id = m_vehicleOdomTopic;
   pathMsg.header.stamp = ros::Time::now();
 
-  AStar planner{m_motionPrimitivesVector, m_distanceThreshold,
-                m_angularThresholdDegrees, m_distanceResolution,
-                m_angularResolutionDegrees};
-
   double startX{m_vehicleState.pose.pose.position.x};
   double startY{m_vehicleState.pose.pose.position.y};
   double startTheta{tf2::getYaw(m_vehicleState.pose.pose.orientation)};
@@ -101,7 +108,7 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
   State goalState{req.x, req.y, req.thetaDegrees * M_PI / 180, Gear::FORWARD};
 
   // Find path to goal
-  auto path = planner.astar(startState, goalState, 1, "Euclidean", "Euclidean");
+  auto path = m_search.search(startState, goalState);
 
   // Full marker array and path with states
   if (path) {

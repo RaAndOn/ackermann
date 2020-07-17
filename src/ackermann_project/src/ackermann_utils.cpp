@@ -14,3 +14,11 @@ double wrapToPi(const double angle) {
 }
 
 } // namespace ackermann
+
+std::string getROSParamString(const ros::NodeHandle &nodeHandle,
+                              const std::string &paramName,
+                              const std::string &defaultValue) {
+  std::string paramValue;
+  nodeHandle.param<std::string>(paramName, paramValue, defaultValue);
+  return paramValue;
+}

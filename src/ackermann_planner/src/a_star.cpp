@@ -8,31 +8,32 @@ AStar::AStar(const std::vector<Primitive> &primitives,
              const double distanceThresholdMeters,
              const double angularThresholdDegrees,
              const double distanceResolutionMeters,
-             const double angularResolutionDegrees)
+             const double angularResolutionDegrees, const double epsilon,
+             const std::string &heuristicFunction,
+             const std::string &edgeCostFunction)
     : m_primitives{primitives}, m_distanceThresholdSquared{std::pow(
                                     distanceThresholdMeters, 2.0)},
       m_angularThreshold{M_PI * angularThresholdDegrees / 180},
       m_distanceResolution{distanceResolutionMeters},
       m_angularResolution{M_PI * angularResolutionDegrees / 180},
       m_collisionThresh{1} {
-  ROS_INFO("Instantiate AStar");
+  ROS_INFO("Set AStar as search algorithm");
+  // Set Variables
+  m_epsilon = epsilon;
+  // Set functions
+  setHeuristicFunction(heuristicFunction);
+  setEdgeCostFunction(edgeCostFunction);
 }
 
 AStar::~AStar() = default;
 
-boost::optional<Path> AStar::astar(const State &startState,
-                                   const State &goalState, const int epsilon,
-                                   const std::string &heuristicFunction,
-                                   const std::string &edgeCostFunction) {
+boost::optional<Path> AStar::search(const State &startState,
+                                    const State &goalState) {
   // Clear Data Structures
   m_nodeGraph.clear();
   m_openList = OpenList();
   // Set Variables
-  m_epsilon = epsilon;
   m_goalState = goalState;
-  // Set functions
-  setHeuristicFunction(heuristicFunction);
-  setEdgeCostFunction(edgeCostFunction);
   // Add start node to the graph and open list
   m_startIndex = hashFunction(startState);
   const auto startNodeIt = m_nodeGraph.emplace(
