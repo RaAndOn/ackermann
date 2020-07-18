@@ -59,7 +59,14 @@ boost::optional<Path> AStar::search(const State &startState,
 
 void AStar::getSuccessors(const Node &currentNode) {
   // Iterate over all the motion primitives to the node's successors
+  State currentState{currentNode.m_state};
   for (const auto &primitive : m_primitives) {
+    if (primitive.m_deltaX > 0.0 and currentState.m_gear == Gear::REVERSE) {
+      continue;
+    }
+    if (primitive.m_deltaX < 0.0 and currentState.m_gear == Gear::FORWARD) {
+      continue;
+    }
     // Create new successor state from primitive
     const auto newTheta = ackermann::wrapToPi(currentNode.m_state.m_theta +
                                               primitive.m_deltaTheta);
@@ -69,8 +76,7 @@ void AStar::getSuccessors(const Node &currentNode) {
     const auto newY = currentNode.m_state.m_y +
                       primitive.m_deltaX * std::sin(newTheta) +
                       primitive.m_deltaY * std::cos(newTheta);
-    const auto newGear =
-        (primitive.m_deltaX > 0) ? Gear::FORWARD : Gear::REVERSE;
+    const auto newGear = getGear(primitive.m_deltaX);
     const State newState{newX, newY, newTheta, newGear};
     const NodeIndex newIndex{hashFunction(newState)};
     /// TODO: Add occupancy grid with cell cost
@@ -135,6 +141,9 @@ boost::optional<Path> AStar::getPath(const NodeIndex &endIndex) {
 
 bool AStar::checkIfSameState(const State &state1, const State &state2) {
   // Compare theta difference first, to avoid expensive euclidean calculation
+  if (state1.m_gear != state2.m_gear) {
+    return false;
+  }
   const double thetaDiff{
       std::abs(ackermann::wrapToPi(state1.m_theta - state2.m_theta))};
   if (thetaDiff > m_angularThreshold) {
@@ -176,4 +185,17 @@ void AStar::setHeuristicFunction(const std::string &heuristicFunction) {
   }
   ROS_ERROR("ERROR: Valid Heuristic Function Not Provided");
   throw "";
+}
+
+Gear AStar::getGear(const double directionOfMovement) {
+  if (std::abs(directionOfMovement) < __DBL_EPSILON__) {
+    return Gear::STOP;
+  } else if (directionOfMovement > 0) {
+    return Gear::FORWARD;
+  } else if (directionOfMovement < 0) {
+    return Gear::REVERSE;
+  } else {
+    ROS_ERROR("ERROR: Could not determine vehicle gear");
+    throw "";
+  }
 }

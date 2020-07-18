@@ -39,6 +39,8 @@ private:
   visualization_msgs::Marker m_reverseMarker;
   /// @brief Marker variable for forward markers
   visualization_msgs::Marker m_forwardMarker;
+  /// @brief Marker variable for forward markers
+  visualization_msgs::Marker m_stopMarker;
 
   /// @brief Wheelbase of vehicle is the distance between front and rear wheels
   const double m_wheelbase;

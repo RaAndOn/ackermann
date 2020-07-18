@@ -13,7 +13,7 @@
 #include <ackermann_planner/planner_utils.hpp>
 
 using FCost = double;
-using NodeIndex = long long int;
+using NodeIndex = long long unsigned;
 
 struct Node {
   State m_state;
@@ -162,6 +162,13 @@ private:
     return fCost;
   }
 
+  /// @brief Determine the gear of the vehicle based on its movement along its
+  /// x-axis
+  /// @param directionOfMovement The direction of the vehicles movement along
+  /// its x-axis
+  /// @return The gear indicated by the direction of movement
+  Gear getGear(const double directionOfMovement);
+
   /// @brief This is the Szudzik Pairing algorithm which takes a pair of
   /// positive integers and makes them into a unique positive integer.
   /// https://www.vertexfragment.com/ramblings/cantor-szudzik-pairing-functions/
@@ -190,7 +197,7 @@ private:
   inline NodeIndex hashFunction(const State &state) const {
     // Make theta positive so we can use szudzik and get a tighter packing
     const NodeIndex theta{
-        static_cast<int>((state.m_theta + M_PI) / m_angularResolution)};
+        static_cast<unsigned>((state.m_theta + M_PI) / m_angularResolution)};
     if (theta < 0) {
       ROS_ERROR("Theta is negative");
       throw "";
@@ -205,11 +212,16 @@ private:
     }
     const NodeIndex index2{szudzikPair(index1, theta)};
     if (index2 < 0) {
+      ROS_ERROR("index1 is negative");
+      throw "";
+    }
+    const NodeIndex index3{szudzikPair(index2, state.m_gear)};
+    if (index3 < 0) {
       ROS_ERROR("ERROR: hashFunction Calculated "
                 "Node index is negative, "
                 "must be positive");
       throw "";
     }
-    return (state.m_gear == Gear::FORWARD) ? index2 : -index2;
+    return index3;
   };
 };

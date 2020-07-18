@@ -88,6 +88,12 @@ void LatticePlanner::initializeMarkers() {
   m_reverseMarker.scale.x = .3;
   m_reverseMarker.scale.y = 0.15;
   m_reverseMarker.scale.z = 0.15;
+
+  m_stopMarker = m_forwardMarker;
+  m_stopMarker.type = visualization_msgs::Marker::SPHERE;
+  m_stopMarker.scale.x = 0.3;
+  m_stopMarker.scale.y = 0.3;
+  m_stopMarker.scale.z = 0.3;
 }
 
 bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
@@ -103,9 +109,9 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
   double startX{m_vehicleState.pose.pose.position.x};
   double startY{m_vehicleState.pose.pose.position.y};
   double startTheta{tf2::getYaw(m_vehicleState.pose.pose.orientation)};
-  State startState{startX, startY, startTheta, Gear::FORWARD};
+  State startState{startX, startY, startTheta, Gear::STOP};
 
-  State goalState{req.x, req.y, req.thetaDegrees * M_PI / 180, Gear::FORWARD};
+  State goalState{req.x, req.y, req.thetaDegrees * M_PI / 180, Gear::STOP};
 
   // Find path to goal
   auto path = m_search.search(startState, goalState);
@@ -137,6 +143,8 @@ LatticePlanner::addMarkerToArray(visualization_msgs::MarkerArray &markerArray,
     marker = m_forwardMarker;
   } else if (state.m_gear == Gear::REVERSE) {
     marker = m_reverseMarker;
+  } else if (state.m_gear == Gear::STOP) {
+    marker = m_stopMarker;
   } else {
     ROS_ERROR("Member variable 'm_gear' of state was not set properly");
   }

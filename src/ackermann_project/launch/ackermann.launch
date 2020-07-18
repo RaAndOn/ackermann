@@ -27,7 +27,7 @@
   <arg name="planner_heuristic" default="Euclidean" />
 
   <!-- Controller Arguments -->
-  <arg name="controller_look_ahead_distance" default="10.0" /> <!-- m -->
+  <arg name="controller_look_ahead_distance" default="5.0" /> <!-- m -->
   <arg name="controller_velocity" default="$(arg planner_velocity)" /> <!-- m/s -->
 
 

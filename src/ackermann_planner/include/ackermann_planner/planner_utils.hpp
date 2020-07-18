@@ -2,7 +2,7 @@
 
 #include <ackermann_project/ackermann_utils.hpp>
 
-enum Gear { FORWARD, REVERSE };
+enum Gear { FORWARD = 0, STOP = 1, REVERSE = 2 };
 
 struct State {
   double m_x;
