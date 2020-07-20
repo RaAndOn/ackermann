@@ -30,15 +30,17 @@ void AckermannVisualization::visualizeCallback(
 void AckermannVisualization::addMarkerToArray(
     visualization_msgs::MarkerArray &markerArray,
     const ackermann_msgs::AckermannPoseStamped &pose) {
-  // Initialize marker shape based on the gear
+  // Initialize marker
   visualization_msgs::Marker marker;
+  // Select marker color
   std_msgs::ColorRGBA color;
   color.a = 1.0; // Don't forget to set the alpha!
   color.r = 0.0;
   color.g = 1.0;
   color.b = 0.0;
-  marker = ackermannMarker(markerArray.markers.size(), pose.pose.position,
-                           pose.pose.orientation, color, (Gear)pose.pose.gear);
+  // Create marker to represent pose and gear
+  ackermannMarker(marker, markerArray.markers.size(), pose.pose.position,
+                  pose.pose.orientation, color, (Gear)pose.pose.gear);
   // Set Marker specifics
   marker.header.frame_id = pose.header.frame_id;
   marker.header.stamp = ros::Time();

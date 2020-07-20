@@ -39,5 +39,8 @@ private:
   void addMarkerToArray(visualization_msgs::MarkerArray &markerArray,
                         const ackermann_msgs::AckermannPoseStamped &pose);
 
+  /// @brief Callback to get the latest path and re-publish it as a series of
+  /// markers
+  /// @param path Path of the vehicle
   void visualizeCallback(const ackermann_msgs::AckermannPath &path);
 };

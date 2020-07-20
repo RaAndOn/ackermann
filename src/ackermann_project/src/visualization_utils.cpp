@@ -1,10 +1,9 @@
 #include <ackermann_project/visualization_utils.hpp>
 
-visualization_msgs::Marker
-ackermannMarker(const int id, const geometry_msgs::Point &position,
-                const geometry_msgs::Quaternion &orientation,
-                const std_msgs::ColorRGBA &color, const Gear &gear) {
-  visualization_msgs::Marker marker;
+void ackermannMarker(visualization_msgs::Marker &marker, const int id,
+                     const geometry_msgs::Point &position,
+                     const geometry_msgs::Quaternion &orientation,
+                     const std_msgs::ColorRGBA &color, const Gear &gear) {
   marker.id = id;
   marker.action = visualization_msgs::Marker::ADD;
   marker.pose.position = position;
@@ -12,6 +11,7 @@ ackermannMarker(const int id, const geometry_msgs::Point &position,
   marker.color = color;
   marker.color.a = 1.0; // Don't forget to set the alpha!
 
+  // Specify marker shape based on gear
   if (gear == Gear::FORWARD) {
     marker.type = visualization_msgs::Marker::ARROW;
     marker.scale.x = .4;
@@ -30,6 +30,4 @@ ackermannMarker(const int id, const geometry_msgs::Point &position,
   } else {
     ROS_ERROR("Member variable 'gear' of marker was not recognized");
   }
-
-  return marker;
 }
