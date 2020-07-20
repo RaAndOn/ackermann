@@ -10,7 +10,7 @@
 #include <ros/ros.h>
 
 #include <ackermann_planner/motion_primitive.hpp>
-#include <ackermann_planner/planner_utils.hpp>
+#include <ackermann_project/planner_utils.hpp>
 
 using FCost = double;
 using NodeIndex = long long unsigned;
