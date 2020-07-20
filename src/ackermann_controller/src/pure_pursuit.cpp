@@ -14,7 +14,7 @@ PurePursuit::PurePursuit(ros::NodeHandle &privateNH, ros::NodeHandle &publicNH)
   m_privateNH.param<std::string>("vehicle_control_topic", m_vehicleControlTopic,
                                  "cmd_vel");
   m_privateNH.param<std::string>("vehicle_path_topic", m_pathTopic, "path");
-  m_privateNH.param("look_ahead_distance", m_lookAheadDistance, 5.0);
+  m_privateNH.param("look_ahead_distance", m_lookAheadDistance, 1.0);
   m_privateNH.param("velocity", m_velocity, 5.0);
 
   m_vehicleSub = m_publicNH.subscribe(m_vehicleOdomTopic, 1,
@@ -125,9 +125,7 @@ void PurePursuit::purePursuit() {
   geometry_msgs::TwistStamped cmd;
   cmd.twist.linear.x =
       m_path.front().pose.gear == Gear::FORWARD ? m_velocity : -m_velocity;
-  cmd.twist.angular.z = m_path.front().pose.gear == Gear::FORWARD
-                            ? steeringAngle
-                            : -steeringAngle;
+  cmd.twist.angular.z = steeringAngle;
   m_controlPub.publish(cmd);
 }
 
