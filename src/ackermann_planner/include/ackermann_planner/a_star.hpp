@@ -212,12 +212,15 @@ private:
   /// @return the index for the graph
   inline NodeIndex hashFunction(const State &state) const {
     // Make theta positive so we can use szudzik and get a tighter packing
-    const NodeIndex theta{
-        static_cast<unsigned>((state.m_theta + M_PI) / m_angularResolution)};
-    if (theta < 0) {
+    const double thetaPositive{state.m_theta + M_PI};
+    // wrapToPi makes theta -Pi to Pi so we want to make it 0 to 2PI
+    if (thetaPositive < 0) {
       ROS_ERROR("Theta is negative");
       throw "";
     }
+    const NodeIndex theta{
+        static_cast<size_t>(thetaPositive / m_angularResolution)};
+
     const int x{static_cast<int>(state.m_x / m_distanceResolution)};
     const int y{static_cast<int>(state.m_y / m_distanceResolution)};
 
