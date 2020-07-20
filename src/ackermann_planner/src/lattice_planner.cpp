@@ -1,7 +1,7 @@
-#include <nav_msgs/Path.h>
 #include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+#include <ackermann_msgs/AckermannPath.h>
 #include <ackermann_planner/lattice_planner.hpp>
 #include <ackermann_project/ackermann_utils.hpp>
 
@@ -43,9 +43,8 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
                                            "ground_truth")} {
 
   // Set publishers and subscribers and services
-  m_visualizationPub = m_publicNH.advertise<visualization_msgs::MarkerArray>(
-      "visualization_marker", 1);
-  m_pathPub = m_publicNH.advertise<nav_msgs::Path>(m_pathTopic, 1);
+  m_pathPub =
+      m_publicNH.advertise<ackermann_msgs::AckermannPath>(m_pathTopic, 1);
   m_vehicleSub = m_publicNH.subscribe(
       m_vehicleOdomTopic, 1, &LatticePlanner::updateStateCallback, this);
   m_planPathSrv =
@@ -101,8 +100,7 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
   std::lock_guard<std::mutex> plannerLock(m_plannerMutex);
 
   // Initialize variables
-  visualization_msgs::MarkerArray markerArray;
-  nav_msgs::Path pathMsg;
+  ackermann_msgs::AckermannPath pathMsg;
   pathMsg.header.frame_id = m_vehicleOdomTopic;
   pathMsg.header.stamp = ros::Time::now();
 

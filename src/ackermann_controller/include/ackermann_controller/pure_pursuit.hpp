@@ -5,8 +5,8 @@
 #include <ros/ros.h>
 #include <tf2_ros/transform_listener.h>
 
+#include <ackermann_msgs/AckermannPath.h>
 #include <nav_msgs/Odometry.h>
-#include <nav_msgs/Path.h>
 
 class PurePursuit {
 public:
@@ -41,7 +41,7 @@ private:
   /// @brief Variable holds the latest vehicle state
   nav_msgs::Odometry m_vehicleState;
   /// @brief Variable holds the path being followed
-  std::vector<geometry_msgs::PoseStamped> m_path;
+  std::vector<ackermann_msgs::AckermannPoseStamped> m_path;
 
   /// @brief Look Ahead Distance (meters)
   double m_lookAheadDistance;
@@ -66,7 +66,7 @@ private:
 
   /// @brief Updates the path variable
   /// @param path The latest path
-  void pathCallback(const nav_msgs::Path &path);
+  void pathCallback(const ackermann_msgs::AckermannPath &path);
 
   /// @brief Find the index of the point on the path closest to the vehicle
   /// @return The index of the closest point to the vehicle
