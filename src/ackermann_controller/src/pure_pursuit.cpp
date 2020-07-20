@@ -14,7 +14,7 @@ PurePursuit::PurePursuit(ros::NodeHandle &privateNH, ros::NodeHandle &publicNH)
   m_privateNH.param<std::string>("vehicle_control_topic", m_vehicleControlTopic,
                                  "cmd_vel");
   m_privateNH.param<std::string>("vehicle_path_topic", m_pathTopic, "path");
-  m_privateNH.param("look_ahead_distance", m_lookAheadDistance, 1.0);
+  m_privateNH.param("lookahead_distance", m_lookaheadDistance, 1.0);
   m_privateNH.param("velocity", m_velocity, 5.0);
 
   m_vehicleSub = m_publicNH.subscribe(m_vehicleOdomTopic, 1,
@@ -71,34 +71,34 @@ void PurePursuit::purePursuit() {
     return;
   }
 
-  // Initialize variables for finding look ahead point
+  // Initialize variables for finding lookahead point
   double vehicleX{m_vehicleState.pose.pose.position.x};
   double vehicleY{m_vehicleState.pose.pose.position.y};
   double poseDistance{0};
 
-  // Initialize the look ahead pose as the last point in the path
+  // Initialize the lookahead pose as the last point in the path
   // This handles the situation where the end of the path is less than a look
   // ahead distance away
-  geometry_msgs::Point lookAheadPositionOdom;
-  lookAheadPositionOdom = m_path.back().pose.position;
+  geometry_msgs::Point lookaheadPositionOdom;
+  lookaheadPositionOdom = m_path.back().pose.position;
 
-  // Find look ahead point
+  // Find lookahead point
   for (auto pathPose : m_path) {
     poseDistance =
         std::sqrt(std::pow(pathPose.pose.position.x - vehicleX, 2.0) +
                   std::pow(pathPose.pose.position.y - vehicleY, 2.0));
-    // Set point as target if it is more than a look ahead distance away, or it
+    // Set point as target if it is more than a lookahead distance away, or it
     // is a Gear::STOP, indicating a change in Gear
-    if (poseDistance >= m_lookAheadDistance or
+    if (poseDistance >= m_lookaheadDistance or
         pathPose.pose.gear == Gear::STOP) {
-      lookAheadPositionOdom = pathPose.pose.position;
+      lookaheadPositionOdom = pathPose.pose.position;
       break;
     }
   }
 
-  // Transform the look ahead pose from the world frame to the robot frame
+  // Transform the lookahead pose from the world frame to the robot frame
   geometry_msgs::TransformStamped transform;
-  geometry_msgs::Point lookAheadPositionRobot;
+  geometry_msgs::Point lookaheadPositionRobot;
   bool notDone{true};
   while (notDone) {
     try {
@@ -107,7 +107,7 @@ void PurePursuit::purePursuit() {
       // proving too slow
       transform = m_tfBuffer.lookupTransform("base_link", "ground_truth",
                                              ros::Time(0), ros::Duration(0.0));
-      tf2::doTransform(lookAheadPositionOdom, lookAheadPositionRobot,
+      tf2::doTransform(lookaheadPositionOdom, lookaheadPositionRobot,
                        transform);
       notDone = false;
     } catch (tf2::TransformException &ex) {
@@ -118,7 +118,7 @@ void PurePursuit::purePursuit() {
   }
 
   // Calculate steering angle based on pure pursuit algorithm
-  double steeringAngle{2 * lookAheadPositionRobot.y /
+  double steeringAngle{2 * lookaheadPositionRobot.y /
                        std::pow(poseDistance, 2.0)};
 
   // Publish command

@@ -31,7 +31,7 @@
   <arg name="planner_heuristic" default="Euclidean" />
 
   <!-- Controller Arguments -->
-  <arg name="controller_look_ahead_distance" default="1.0" /> <!-- m -->
+  <arg name="controller_lookahead_distance" default="1.0" /> <!-- m -->
   <arg name="controller_velocity" default="$(arg planner_velocity)" /> <!-- m/s -->
 
 
@@ -72,7 +72,7 @@
 
     <node name="ackermann_controller_node" pkg="ackermann_controller" type="ackermann_controller_node" output=
     "screen">
-      <param name="look_ahead_distance" type="double" value="$(arg controller_look_ahead_distance)" />
+      <param name="lookahead_distance" type="double" value="$(arg controller_lookahead_distance)" />
       <param name="velocity" type="double" value="$(arg controller_velocity)" />
       <param name="vehicle_odom_topic" type="str" value="$(arg vehicle_odom_topic)" />
       <param name="vehicle_control_topic" type="str" value="$(arg vehicle_control_topic)" />

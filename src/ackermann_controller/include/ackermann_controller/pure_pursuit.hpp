@@ -43,8 +43,8 @@ private:
   /// @brief Variable holds the path being followed
   std::vector<ackermann_msgs::AckermannPoseStamped> m_path;
 
-  /// @brief Look Ahead Distance (meters)
-  double m_lookAheadDistance;
+  /// @brief Lookahead Distance (meters)
+  double m_lookaheadDistance;
   /// @brief Velocity of the vehicle
   double m_velocity;
 
