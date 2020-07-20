@@ -5,12 +5,11 @@
 
 #include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Odometry.h>
-#include <visualization_msgs/MarkerArray.h>
 
 #include <ackermann_planner/Goal.h>
 #include <ackermann_planner/a_star.hpp>
 #include <ackermann_planner/motion_primitive.hpp>
-#include <ackermann_planner/planner_utils.hpp>
+#include <ackermann_project/ackermann_utils.hpp>
 
 class LatticePlanner {
 public:
@@ -24,8 +23,6 @@ private:
   /// @brief Public ROS Node Handle
   ros::NodeHandle m_publicNH;
 
-  /// @brief Publisher of path marker visualization
-  ros::Publisher m_visualizationPub;
   /// @brief Publisher of path
   ros::Publisher m_pathPub;
 
@@ -34,13 +31,6 @@ private:
 
   /// @brief Service to request a path
   ros::ServiceServer m_planPathSrv;
-
-  /// @brief Marker variable for reverse markers
-  visualization_msgs::Marker m_reverseMarker;
-  /// @brief Marker variable for forward markers
-  visualization_msgs::Marker m_forwardMarker;
-  /// @brief Marker variable for forward markers
-  visualization_msgs::Marker m_stopMarker;
 
   /// @brief Wheelbase of vehicle is the distance between front and rear wheels
   const double m_wheelbase;
@@ -100,20 +90,6 @@ private:
 
   /// @brief Variable holds the latest vehicle state
   nav_msgs::Odometry m_vehicleState;
-
-  /// @brief This function initializes the reverse and forward markers so they
-  /// look correct. This is because ROS is dumb sometimes and it takes like 20
-  /// lines to do this for some reason
-  void initializeMarkers();
-
-  /// @brief This function adds a marker to the marker array for publication and
-  /// visualization in RVIZ
-  /// @param markerArray reference to the marker array
-  /// @param state location and gear of the new marker being added to the marker
-  /// array
-  geometry_msgs::PoseStamped
-  addMarkerToArray(visualization_msgs::MarkerArray &markerArray,
-                   const State &state);
 
   /// @brief Service call to find a path form the vehicle's current state to a
   /// goal state

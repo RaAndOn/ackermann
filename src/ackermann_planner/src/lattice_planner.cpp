@@ -3,7 +3,6 @@
 
 #include <ackermann_msgs/AckermannPath.h>
 #include <ackermann_planner/lattice_planner.hpp>
-#include <ackermann_project/ackermann_utils.hpp>
 
 LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
                                ros::NodeHandle &publicNH)
@@ -49,8 +48,6 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
       m_vehicleOdomTopic, 1, &LatticePlanner::updateStateCallback, this);
   m_planPathSrv =
       m_publicNH.advertiseService("plan_path", &LatticePlanner::planPath, this);
-
-  initializeMarkers();
 }
 
 LatticePlanner::~LatticePlanner() = default;
@@ -59,40 +56,6 @@ void LatticePlanner::updateStateCallback(const nav_msgs::Odometry &odom) {
   std::lock_guard<std::mutex> plannerLock(m_plannerMutex);
 
   m_vehicleState = odom;
-}
-
-void LatticePlanner::initializeMarkers() {
-  m_forwardMarker.header.frame_id = m_vehicleOdomTopic;
-  m_forwardMarker.header.stamp = ros::Time();
-  // marker.ns = "my_namespace";
-  m_forwardMarker.id = 0;
-  m_forwardMarker.type = visualization_msgs::Marker::ARROW;
-  m_forwardMarker.action = visualization_msgs::Marker::ADD;
-  m_forwardMarker.pose.position.x = 1;
-  m_forwardMarker.pose.position.y = 1;
-  m_forwardMarker.pose.position.z = 1;
-  m_forwardMarker.pose.orientation.x = 0.0;
-  m_forwardMarker.pose.orientation.y = 0.0;
-  m_forwardMarker.pose.orientation.z = 0.0;
-  m_forwardMarker.pose.orientation.w = 1.0;
-  m_forwardMarker.scale.x = .4;
-  m_forwardMarker.scale.y = 0.075;
-  m_forwardMarker.scale.z = 0.075;
-  m_forwardMarker.color.a = 1.0; // Don't forget to set the alpha!
-  m_forwardMarker.color.r = 0.0;
-  m_forwardMarker.color.g = 1.0;
-  m_forwardMarker.color.b = 0.0;
-
-  m_reverseMarker = m_forwardMarker;
-  m_reverseMarker.scale.x = .3;
-  m_reverseMarker.scale.y = 0.15;
-  m_reverseMarker.scale.z = 0.15;
-
-  m_stopMarker = m_forwardMarker;
-  m_stopMarker.type = visualization_msgs::Marker::SPHERE;
-  m_stopMarker.scale.x = 0.3;
-  m_stopMarker.scale.y = 0.3;
-  m_stopMarker.scale.z = 0.3;
 }
 
 bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
@@ -118,8 +81,18 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
   if (path) {
     res.success = true;
     for (const auto &state : path.get()) {
-      auto pose = addMarkerToArray(markerArray, state);
-      pathMsg.poses.push_back(pose);
+      ackermann_msgs::AckermannPoseStamped poseMsg;
+      poseMsg.header.frame_id = m_vehicleOdomTopic;
+      poseMsg.header.stamp = ros::Time::now();
+      poseMsg.pose.position.x = state.m_x;
+      poseMsg.pose.position.y = state.m_y;
+
+      tf2::Quaternion quat;
+      quat.setRPY(0, 0, state.m_theta);
+      tf2::convert(quat, poseMsg.pose.orientation);
+
+      poseMsg.pose.gear = state.m_gear;
+      pathMsg.poses.push_back(poseMsg);
     }
   } else {
     res.success = false;
@@ -127,40 +100,6 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
   }
 
   // Publish path
-  m_visualizationPub.publish(markerArray);
   m_pathPub.publish(pathMsg);
   return true;
-}
-
-geometry_msgs::PoseStamped
-LatticePlanner::addMarkerToArray(visualization_msgs::MarkerArray &markerArray,
-                                 const State &state) {
-  // Initialize marker shape based on the gear
-  visualization_msgs::Marker marker;
-  if (state.m_gear == Gear::FORWARD) {
-    marker = m_forwardMarker;
-  } else if (state.m_gear == Gear::REVERSE) {
-    marker = m_reverseMarker;
-  } else if (state.m_gear == Gear::STOP) {
-    marker = m_stopMarker;
-  } else {
-    ROS_ERROR("Member variable 'm_gear' of state was not set properly");
-  }
-  // Set Marker specifics
-  marker.id = markerArray.markers.size();
-  marker.pose.position.x = state.m_x;
-  marker.pose.position.y = state.m_y;
-
-  tf2::Quaternion quat;
-  quat.setRPY(0, 0, state.m_theta);
-  tf2::convert(quat, marker.pose.orientation);
-
-  // Add marker to marker array
-  markerArray.markers.push_back(marker);
-
-  geometry_msgs::PoseStamped pose;
-  pose.header.frame_id = m_vehicleOdomTopic;
-  pose.header.stamp = ros::Time::now();
-  pose.pose = marker.pose;
-  return pose;
 }

@@ -14,6 +14,7 @@
   <arg name="vehicle_odom_topic" default="ground_truth" />
   <arg name="vehicle_control_topic" default="cmd_vel" />
   <arg name="vehicle_path_topic" default="path" />
+  <arg name="marker_visualization_topic" default="visualization_marker" />
 
   <!-- Planner Arguments -->
   <arg name="planner_dt" default=".5" />
@@ -71,6 +72,12 @@
       <param name="velocity" type="double" value="$(arg controller_velocity)" />
       <param name="vehicle_odom_topic" type="str" value="$(arg vehicle_odom_topic)" />
       <param name="vehicle_control_topic" type="str" value="$(arg vehicle_control_topic)" />
+      <param name="vehicle_path_topic" type="str" value="$(arg vehicle_path_topic)" />
+    </node>
+
+    <node name="ackermann_visualization_node" pkg="ackermann_visualization" type="ackermann_visualization_node" output=
+    "screen">
+      <param name="marker_visualization_topic" type="str" value="$(arg marker_visualization_topic)" />
       <param name="vehicle_path_topic" type="str" value="$(arg vehicle_path_topic)" />
     </node>
 
