@@ -4,6 +4,7 @@
 #include <tf2/utils.h>
 
 #include <ackermann_controller/pure_pursuit.hpp>
+#include <ackermann_project/planner_utils.hpp>
 
 PurePursuit::PurePursuit(ros::NodeHandle &privateNH, ros::NodeHandle &publicNH)
     : m_privateNH{privateNH}, m_publicNH{publicNH}, m_tfListener{m_tfBuffer} {
@@ -46,6 +47,11 @@ void PurePursuit::purePursuit() {
   // Remove points on the path which have been passed
   m_path.erase(m_path.begin(), m_path.begin() + closestPointIndex);
 
+  // Remove the first point on the path if it is Gear::STOP
+  while (not m_path.empty() and m_path.front().pose.gear == Gear::STOP) {
+    m_path.erase(m_path.begin());
+  }
+
   // Clear path if one point is left
   if (m_path.size() <= 1) {
     m_path.clear();
@@ -81,7 +87,10 @@ void PurePursuit::purePursuit() {
     poseDistance =
         std::sqrt(std::pow(pathPose.pose.position.x - vehicleX, 2.0) +
                   std::pow(pathPose.pose.position.y - vehicleY, 2.0));
-    if (poseDistance >= m_lookAheadDistance) {
+    // Set point as target if it is more than a look ahead distance away, or it
+    // is a Gear::STOP, indicating a change in Gear
+    if (poseDistance >= m_lookAheadDistance or
+        pathPose.pose.gear == Gear::STOP) {
       lookAheadPositionOdom = pathPose.pose.position;
       break;
     }
@@ -114,8 +123,11 @@ void PurePursuit::purePursuit() {
 
   // Publish command
   geometry_msgs::TwistStamped cmd;
-  cmd.twist.linear.x = m_velocity;
-  cmd.twist.angular.z = steeringAngle;
+  cmd.twist.linear.x =
+      m_path.front().pose.gear == Gear::FORWARD ? m_velocity : -m_velocity;
+  cmd.twist.angular.z = m_path.front().pose.gear == Gear::FORWARD
+                            ? steeringAngle
+                            : -steeringAngle;
   m_controlPub.publish(cmd);
 }
 
