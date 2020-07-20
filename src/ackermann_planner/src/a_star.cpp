@@ -68,8 +68,8 @@ void AStar::getSuccessors(const Node &currentNode) {
       continue;
     }
     // Create new successor state from primitive
-    const auto newTheta = ackermann::wrapToPi(currentNode.m_state.m_theta +
-                                              primitive.m_deltaTheta);
+    const auto newTheta =
+        wrapToPi(currentNode.m_state.m_theta + primitive.m_deltaTheta);
     const auto newX = currentNode.m_state.m_x +
                       primitive.m_deltaX * std::cos(newTheta) -
                       primitive.m_deltaY * std::sin(newTheta);
@@ -144,8 +144,7 @@ bool AStar::checkIfSameState(const State &state1, const State &state2) {
   if (state1.m_gear != state2.m_gear) {
     return false;
   }
-  const double thetaDiff{
-      std::abs(ackermann::wrapToPi(state1.m_theta - state2.m_theta))};
+  const double thetaDiff{std::abs(wrapToPi(state1.m_theta - state2.m_theta))};
   if (thetaDiff > m_angularThreshold) {
     return false;
   }
