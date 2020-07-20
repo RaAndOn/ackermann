@@ -18,7 +18,7 @@ MotionPrimitive::MotionPrimitive(const double wheelBase, const double velocity,
 
   calculateMotionPrimitive(0, true);
   /// Set distance resolution for planner as half of a straight forward movement
-  m_distanceResolution = m_primitiveVector.back().m_deltaX * .5;
+  m_distanceResolution = m_primitiveVector.back().m_deltaX;
   calculateMotionPrimitive(0, false);
   m_primitiveVector.push_back(Primitive{0, 0, 0});
   for (int i = 1; i <= numberOfDiscretizations; ++i) {

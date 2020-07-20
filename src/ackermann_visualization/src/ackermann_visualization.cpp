@@ -6,7 +6,7 @@ AckermannVisualization::AckermannVisualization(ros::NodeHandle &privateNH,
     : m_privateNH{privateNH}, m_publicNH{publicNH},
       m_pathTopic{getROSParamString(m_privateNH, "vehicle_path_topic", "path")},
       m_markerVisualizationTopic{getROSParamString(
-          m_privateNH, "marker_visualization_topic", "visualization_marker")} {
+          m_privateNH, "path_visualization_topic", "path_markers")} {
 
   // Set publishers and subscribers and services
   m_markerVisualizationPub =

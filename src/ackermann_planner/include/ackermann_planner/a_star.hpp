@@ -75,15 +75,15 @@ public:
 
   /// @brief Returns the graph created in the search
   /// @return The node graph
-  Graph getGraph() { return m_nodeGraph; }
+  Graph getGraph() const { return m_nodeGraph; }
 
   /// @brief Returns the size of the graph created in the search
   /// @return The size of the graph created in the search
-  size_t getGraphSize() { return m_nodeGraph.size(); }
+  size_t getGraphSize() const { return m_nodeGraph.size(); }
 
   /// @brief Returns the time in seconds taken to perform latest search
   /// @return The time in seconds taken to perform latest search
-  double getLatestSearchTime() { return m_latestSearchTime; }
+  double getLatestSearchTime() const { return m_latestSearchTime; }
 
 private:
   /// @brief Node graph containing all nodes and their relationships

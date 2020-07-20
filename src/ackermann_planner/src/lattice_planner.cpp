@@ -3,6 +3,7 @@
 
 #include <ackermann_msgs/AckermannPath.h>
 #include <ackermann_planner/lattice_planner.hpp>
+#include <ackermann_project/visualization_utils.hpp>
 
 LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
                                ros::NodeHandle &publicNH)
@@ -30,7 +31,7 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
       m_heuristicFunction{
           getROSParamString(m_privateNH, "heuristic", "Euclidean")},
       m_edgeCostFunction{
-          getROSParamString(m_privateNH, "edge_cost_function", "ground_truth")},
+          getROSParamString(m_privateNH, "edge_cost_function", "Euclidean")},
       // Instantiate Search Method
       m_search{m_motionPrimitivesVector,   m_distanceThreshold,
                m_angularThresholdDegrees,  m_distanceResolution,
@@ -38,12 +39,17 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
                m_heuristicFunction,        m_edgeCostFunction},
       // Instantiate Topic Names
       m_pathTopic{getROSParamString(m_privateNH, "vehicle_path_topic", "path")},
-      m_vehicleOdomTopic{getROSParamString(m_privateNH, "vehicle_odom_topic",
-                                           "ground_truth")} {
+      m_vehicleOdomTopic{
+          getROSParamString(m_privateNH, "vehicle_odom_topic", "ground_truth")},
+      m_searchDebugTopic{getROSParamString(
+          m_privateNH, "search_visualization_topic", "search_markers")},
+      m_debug{getROSParam(m_privateNH, "debug", false)} {
 
   // Set publishers and subscribers and services
   m_pathPub =
       m_publicNH.advertise<ackermann_msgs::AckermannPath>(m_pathTopic, 1);
+  m_debugMarkerPub = m_publicNH.advertise<visualization_msgs::MarkerArray>(
+      m_searchDebugTopic, 1);
   m_vehicleSub = m_publicNH.subscribe(
       m_vehicleOdomTopic, 1, &LatticePlanner::updateStateCallback, this);
   m_planPathSrv =
@@ -81,6 +87,10 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
   res.planningTime = m_search.getLatestSearchTime();
   res.nodesExpanded = m_search.getGraphSize();
 
+  if (m_debug) {
+    visualizeNodeExpansions();
+  }
+
   // Full marker array and path with states
   if (path) {
     res.success = true;
@@ -106,4 +116,39 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
   // Publish path
   m_pathPub.publish(pathMsg);
   return true;
+}
+
+void LatticePlanner::visualizeNodeExpansions() {
+  const Graph searchGraph{m_search.getGraph()};
+  // Initialize marker
+  visualization_msgs::Marker marker;
+  // Set Marker specifics
+  marker.header.frame_id = "ground_truth";
+  marker.header.stamp = ros::Time();
+  visualization_msgs::MarkerArray markerArray;
+  for (std::pair<NodeIndex, Node> node : searchGraph) {
+    // Select marker color
+    std_msgs::ColorRGBA color;
+    color.a = 1.0; // Don't forget to set the alpha!
+    color.r = static_cast<double>(node.second.m_expansionOrder /
+                                  m_search.getGraphSize());
+    color.g = 0.0;
+    color.b = 1.0 - static_cast<double>(node.second.m_expansionOrder /
+                                        m_search.getGraphSize());
+    geometry_msgs::Point position;
+    position.x = node.second.m_state.m_x;
+    position.y = node.second.m_state.m_y;
+    position.z = -1.0; // Display below the plane
+    geometry_msgs::Quaternion orientation;
+    tf2::Quaternion quat;
+    quat.setRPY(0, 0, node.second.m_state.m_theta);
+    tf2::convert(quat, orientation);
+    // Create marker to represent pose and gear
+    ackermannMarker(marker, node.second.m_expansionOrder, position, orientation,
+                    color, (Gear)node.second.m_state.m_gear);
+
+    // Add marker to marker array
+    markerArray.markers.push_back(marker);
+  }
+  m_debugMarkerPub.publish(markerArray);
 }
