@@ -196,11 +196,21 @@ private:
   /// takes a pair of signed integers and makes them into a unique positive
   /// integer.
   /// https://www.vertexfragment.com/ramblings/cantor-szudzik-pairing-functions/
-  inline NodeIndex signedSzudzikPair(const NodeIndex x,
-                                     const NodeIndex y) const {
+  inline NodeIndex signedSzudzikPair(const int x, const int y) const {
     // Modification to Sudzik Pairing algorithm for negative numbers
-    const NodeIndex a = (x >= 0.0 ? 2.0 * x : (-2.0 * x) - 1.0);
-    const NodeIndex b = (y >= 0.0 ? 2.0 * y : (-2.0 * y) - 1.0);
+
+    // @NOTE I'm leaving a and b as ints, because it is unlikely to reach an
+    // overflow size naturally, and this allows for easy error checking
+    const int a = (x >= 0 ? 2 * x : (-2 * x) - 1);
+    if (a < 0) {
+      ROS_ERROR("ERROR: a is negative. a: %s | x: %s",
+                std::to_string(a).c_str(), std::to_string(x).c_str());
+    }
+    const int b = (y >= 0 ? 2 * y : (-2 * y) - 1);
+    if (b < 0) {
+      ROS_ERROR("ERROR: b is negative. b: %s | y: %s",
+                std::to_string(b).c_str(), std::to_string(y).c_str());
+    }
     // Szudzik Pairing Algorithm
     return szudzikPair(a, b);
     // * 0.5 <- Removed to ensure numbers are ints
@@ -225,20 +235,22 @@ private:
     const int y{static_cast<int>(state.m_y / m_distanceResolution)};
 
     const NodeIndex index1{signedSzudzikPair(x, y)};
-    if (index1 < 0) {
-      ROS_ERROR("index1 is negative");
-      throw "";
-    }
     const NodeIndex index2{szudzikPair(index1, theta)};
-    if (index2 < 0) {
-      ROS_ERROR("index1 is negative");
+    if (index2 < index1 or index2 < theta) {
+      ROS_ERROR(
+          "ERROR: Likely overflow. index2 is less than one of its components");
+      ROS_ERROR("index2: %s | index1: %s | theta: %s",
+                std::to_string(index2).c_str(), std::to_string(index1).c_str(),
+                std::to_string(theta).c_str());
       throw "";
     }
     const NodeIndex index3{szudzikPair(index2, state.m_gear)};
-    if (index3 < 0) {
-      ROS_ERROR("ERROR: hashFunction Calculated "
-                "Node index is negative, "
-                "must be positive");
+    if (index3 < index2 or index3 < state.m_gear) {
+      ROS_ERROR(
+          "ERROR: Likely overflow. index3 is less than one of its components");
+      ROS_ERROR("index2: %s | index2: %s | index3: %s",
+                std::to_string(index3).c_str(), std::to_string(index2).c_str(),
+                std::to_string(state.m_gear).c_str());
       throw "";
     }
     return index3;
