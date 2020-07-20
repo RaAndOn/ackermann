@@ -93,7 +93,7 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
   }
 
   // Define Ground Truth Origin for tf broadcast and RVIZ visualization
-  m_groundTruthOrigin = m_baseLink->WorldCoGPose().Pos();
+  m_groundTruthOrigin = m_baseLink->WorldPose().Pos();
   m_groundTruthOrigin.Z() = chassisHeight - 2 * wheelRadius;
 
   ros::NodeHandle m_nh(m_robotNamespace);
@@ -196,7 +196,7 @@ void AckermannControlPlugin::OnUpdate() {
   groundTruthOdom.twist.twist.angular.y = currentAngularVelocity.Y();
   groundTruthOdom.twist.twist.angular.z = currentAngularVelocity.Z();
   // Get current world pose
-  const auto worldPose{m_baseLink->WorldCoGPose()};
+  const auto worldPose{m_baseLink->WorldPose()};
   // Set current position in ground truth message
   const auto worldPos{worldPose.Pos()};
   groundTruthOdom.pose.pose.position.x = worldPos.X();
