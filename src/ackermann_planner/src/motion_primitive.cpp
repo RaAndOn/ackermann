@@ -22,7 +22,7 @@ MotionPrimitive::MotionPrimitive(const double wheelBase, const double velocity,
   calculateMotionPrimitive(0, false);
   m_primitiveVector.push_back(Primitive{0, 0, 0});
   for (int i = 1; i <= numberOfDiscretizations; ++i) {
-    double steerAngle{m_angleDiscretization * i};
+    double steerAngle{m_angleDiscretization / i};
     calculateMotionPrimitive(steerAngle, true);
     if (i == 1) {
       /// Set angular resolution for planner as a single delta theta

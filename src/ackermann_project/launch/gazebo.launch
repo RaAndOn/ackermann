@@ -18,6 +18,9 @@
   <arg name="wheel_radius" default="0.3556" />
   <arg name="wheel_depth" default="0.2" />
   <arg name="wheelbase" default="3" />
+  <!-- Limits -->
+  <arg name="steering_limit_degrees" default="27" />
+
   <!-- Topic names -->
   <arg name="vehicle_odom_topic" default="ground_truth" />
   <arg name="vehicle_control_topic" default="cmd_vel" />
@@ -41,7 +44,8 @@
                                                               wheel_depth:=$(arg wheel_depth)
                                                               wheelbase:=$(arg wheelbase)
                                                               vehicle_odom_topic:=$(arg vehicle_odom_topic)
-                                                              vehicle_control_topic:=$(arg vehicle_control_topic)" />
+                                                              vehicle_control_topic:=$(arg vehicle_control_topic)
+                                                              steering_limit_degrees:=$(arg steering_limit_degrees)" />
 
   <!-- Push robot_description to factory and spawn robot in gazebo -->
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"

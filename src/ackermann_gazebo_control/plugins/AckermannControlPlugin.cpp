@@ -73,6 +73,12 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
     ROS_ERROR("Parameter 'chassis_height' missing");
   }
 
+  if (sdf->HasElement("steering_limit_degrees")) {
+    m_steeringLimit = M_PI / 180 * sdf->Get<double>("steering_limit_degrees");
+  } else {
+    ROS_ERROR("Parameter 'steering_limit_degrees' missing");
+  }
+
   std::string vehicleOdomTopic;
   if (sdf->HasElement("vehicle_odom_topic")) {
     vehicleOdomTopic = sdf->Get<std::string>("vehicle_odom_topic");
@@ -311,6 +317,9 @@ void AckermannControlPlugin::controlCallback(
   m_desiredVelocity = cmd.twist.linear.x;
   // angular.z represents the desired steering angle of the vehicle (radians)
   m_desiredSteerAngle = cmd.twist.angular.z;
+  if (std::abs(m_desiredSteerAngle) > m_steeringLimit) {
+    m_desiredSteerAngle = m_steeringLimit * sign(m_desiredSteerAngle);
+  }
   // ROS_INFO("Desired Velocity: %s m/s",
   //          std::to_string(m_desiredVelocity).c_str());
   // ROS_INFO("Desired Steer Angle: %s radians",

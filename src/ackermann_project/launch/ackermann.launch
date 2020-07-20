@@ -10,6 +10,9 @@
   <arg name="wheel_radius" default="0.3556" />
   <arg name="wheel_depth" default="0.2" />
   <arg name="wheelbase" default="3" />
+  <!-- Limits -->
+  <arg name="steering_limit_degrees" default="27" />
+
   <!-- Topic names -->
   <arg name="vehicle_odom_topic" default="ground_truth" />
   <arg name="vehicle_control_topic" default="cmd_vel" />
@@ -48,6 +51,7 @@
       <arg name="wheelbase" default="$(arg wheelbase)" />
       <arg name="vehicle_odom_topic" default="$(arg vehicle_odom_topic)" />
       <arg name="vehicle_control_topic" default="$(arg vehicle_control_topic)" />
+      <arg name="steering_limit_degrees" default="$(arg steering_limit_degrees)" />
     </include>
 
     <node name="ackermann_planner_node" pkg="ackermann_planner" type="ackermann_planner_node" output=

@@ -98,6 +98,9 @@ private:
   /// @brief Width between left and right wheels in meters (Ackermann geometry)
   double m_w;
 
+  /// @brief Vehicle steering limit (radians)
+  double m_steeringLimit;
+
   /// @brief This is purely for RVIZ aesthetics. For some reason the base_link
   /// and chassis are getting lumped together So to get the base link to start
   /// at the origin I need to subtract off the inital position
