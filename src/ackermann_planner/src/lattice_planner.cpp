@@ -127,14 +127,15 @@ void LatticePlanner::visualizeNodeExpansions() {
   marker.header.stamp = ros::Time();
   visualization_msgs::MarkerArray markerArray;
   for (std::pair<NodeIndex, Node> node : searchGraph) {
+    const double orderFraction{
+        static_cast<double>(node.second.m_expansionOrder) /
+        static_cast<double>(m_search.getGraphSize())};
     // Select marker color
     std_msgs::ColorRGBA color;
     color.a = 1.0; // Don't forget to set the alpha!
-    color.r = static_cast<double>(node.second.m_expansionOrder /
-                                  m_search.getGraphSize());
+    color.r = orderFraction;
     color.g = 0.0;
-    color.b = 1.0 - static_cast<double>(node.second.m_expansionOrder /
-                                        m_search.getGraphSize());
+    color.b = 1.0 - orderFraction;
     geometry_msgs::Point position;
     position.x = node.second.m_state.m_x;
     position.y = node.second.m_state.m_y;
