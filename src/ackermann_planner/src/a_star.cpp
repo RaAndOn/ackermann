@@ -29,6 +29,8 @@ AStar::~AStar() = default;
 
 boost::optional<Path> AStar::search(const State &startState,
                                     const State &goalState) {
+  // Mark the start time of the search
+  const double begin = ros::Time::now().toSec();
   // Clear Data Structures
   m_nodeGraph.clear();
   m_openList = OpenList();
@@ -36,8 +38,9 @@ boost::optional<Path> AStar::search(const State &startState,
   m_goalState = goalState;
   // Add start node to the graph and open list
   m_startIndex = hashFunction(startState);
-  const auto startNodeIt = m_nodeGraph.emplace(
-      m_startIndex, Node{startState, m_startIndex, boost::none, 0});
+  const auto startNodeIt =
+      m_nodeGraph.emplace(m_startIndex, Node{m_nodeGraph.size(), startState,
+                                             m_startIndex, boost::none, 0});
   m_openList.emplace(addFCost(startNodeIt.first->second), m_startIndex);
   // Keep expanding nodes while the open list is not empty
   while (not m_openList.empty()) {
@@ -49,11 +52,19 @@ boost::optional<Path> AStar::search(const State &startState,
     if (checkIfSameState(currentNode->m_state, m_goalState.get())) {
       ROS_INFO("PATH FOUND");
       getSuccessors(*currentNode);
+      // Record how long it took to perform search
+      const double end = ros::Time::now().toSec();
+      m_latestSearchTime = end - begin;
+      // Return the path found
       return getPath(currentNode->m_index);
     }
     getSuccessors(*currentNode);
   }
   ROS_INFO("PATH NOT FOUND: Entire Configuration Space Expanded");
+  // Record how long it took to perform search
+  const double end = ros::Time::now().toSec();
+  m_latestSearchTime = end - begin;
+  // Return the none, indicating no path found
   return boost::none;
 }
 
@@ -103,7 +114,8 @@ void AStar::getSuccessors(const Node &currentNode) {
       }
       // Add node to the open list if the node does not exist in the graph
       const auto newNodeIt = m_nodeGraph.emplace(
-          newIndex, Node{newState, newIndex, currentNode.m_index, gCost});
+          newIndex, Node{m_nodeGraph.size(), newState, newIndex,
+                         currentNode.m_index, gCost});
       m_openList.emplace(addFCost(newNodeIt.first->second), newIndex);
     }
   }

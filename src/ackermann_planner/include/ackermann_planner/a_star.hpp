@@ -13,17 +13,18 @@
 #include <ackermann_project/planner_utils.hpp>
 
 using FCost = double;
-using NodeIndex = long long unsigned;
+using NodeIndex = size_t;
 
 struct Node {
+  size_t m_expansionOrder;
   State m_state;
   boost::optional<NodeIndex> m_parentIndex;
   double m_gCost;
   bool m_closed;
   NodeIndex m_index;
-  Node(const State &state, const NodeIndex index,
+  Node(const size_t expansionOrder, const State &state, const NodeIndex index,
        const boost::optional<NodeIndex> parentIndex, const double gCost)
-      : m_state{state}, m_index{index},
+      : m_expansionOrder{expansionOrder}, m_state{state}, m_index{index},
         m_parentIndex{parentIndex}, m_gCost{gCost}, m_closed{false} {}
 };
 
@@ -72,6 +73,18 @@ public:
   /// @return Path from the start to goal state
   boost::optional<Path> search(const State &startState, const State &goalState);
 
+  /// @brief Returns the graph created in the search
+  /// @return The node graph
+  Graph getGraph() { return m_nodeGraph; }
+
+  /// @brief Returns the size of the graph created in the search
+  /// @return The size of the graph created in the search
+  size_t getGraphSize() { return m_nodeGraph.size(); }
+
+  /// @brief Returns the time in seconds taken to perform latest search
+  /// @return The time in seconds taken to perform latest search
+  double getLatestSearchTime() { return m_latestSearchTime; }
+
 private:
   /// @brief Node graph containing all nodes and their relationships
   Graph m_nodeGraph;
@@ -112,6 +125,9 @@ private:
 
   /// @brief Vector of the primitives which are used for node expansion
   const std::vector<Primitive> m_primitives;
+
+  /// @brief The amount of time taken to perform the latest search
+  double m_latestSearchTime;
 
   /// @brief Given a node, this function finds any legitimate successors and
   /// adds them to the node graph

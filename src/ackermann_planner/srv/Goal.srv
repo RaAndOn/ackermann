@@ -3,3 +3,5 @@ float64 y
 float64 thetaDegrees
 ---
 bool success
+int32 nodesExpanded
+float64 planningTime

@@ -76,6 +76,10 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
 
   // Find path to goal
   auto path = m_search.search(startState, goalState);
+  const double end = ros::Time::now().toSec();
+
+  res.planningTime = m_search.getLatestSearchTime();
+  res.nodesExpanded = m_search.getGraphSize();
 
   // Full marker array and path with states
   if (path) {
