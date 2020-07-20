@@ -14,7 +14,7 @@ PurePursuit::PurePursuit(ros::NodeHandle &privateNH, ros::NodeHandle &publicNH)
   m_privateNH.param<std::string>("vehicle_control_topic", m_vehicleControlTopic,
                                  "cmd_vel");
   m_privateNH.param<std::string>("vehicle_path_topic", m_pathTopic, "path");
-  m_privateNH.param("lookahead_distance", m_lookaheadDistance, 1.0);
+  m_privateNH.param("lookahead_distance", m_lookaheadDistance, 3.0);
   m_privateNH.param("velocity", m_velocity, 5.0);
 
   m_vehicleSub = m_publicNH.subscribe(m_vehicleOdomTopic, 1,
