@@ -10,21 +10,28 @@
   <arg name="wheel_radius" default="0.3556" />
   <arg name="wheel_depth" default="0.2" />
   <arg name="wheelbase" default="3" />
+  <!-- Limits -->
+  <arg name="steering_limit_degrees" default="27" />
+
   <!-- Topic names -->
   <arg name="vehicle_odom_topic" default="ground_truth" />
   <arg name="vehicle_control_topic" default="cmd_vel" />
   <arg name="vehicle_path_topic" default="path" />
+  <arg name="marker_visualization_topic" default="visualization_marker" />
 
   <!-- Planner Arguments -->
-  <arg name="planner_dt" default=".1" />
+  <arg name="planner_dt" default=".5" />
   <arg name="planner_discretization_degrees" default="22.5" />
   <arg name="planner_steering_increments" default="1" />
-  <arg name="planner_velocity" default="5.0" /> <!-- m/s -->
+  <arg name="planner_velocity" default="1.0" /> <!-- m/s -->
   <arg name="planner_angular_threshold_degrees" default="15.0" /> <!-- degrees -->
   <arg name="planner_distance_threshold" default="1.0" /> <!-- m -->
+  <arg name="planner_epsilon" default="1.0" />
+  <arg name="planner_edge_cost_function" default="Euclidean" />
+  <arg name="planner_heuristic" default="Euclidean" />
 
   <!-- Controller Arguments -->
-  <arg name="controller_look_ahead_distance" default="10.0" /> <!-- m -->
+  <arg name="controller_lookahead_distance" default="3.0" /> <!-- m -->
   <arg name="controller_velocity" default="$(arg planner_velocity)" /> <!-- m/s -->
 
 
@@ -44,6 +51,7 @@
       <arg name="wheelbase" default="$(arg wheelbase)" />
       <arg name="vehicle_odom_topic" default="$(arg vehicle_odom_topic)" />
       <arg name="vehicle_control_topic" default="$(arg vehicle_control_topic)" />
+      <arg name="steering_limit_degrees" default="$(arg steering_limit_degrees)" />
     </include>
 
     <node name="ackermann_planner_node" pkg="ackermann_planner" type="ackermann_planner_node" output=
@@ -56,14 +64,24 @@
       <param name="angular_threshold_degrees" type="double" value="$(arg planner_angular_threshold_degrees)" />
       <param name="distance_threshold_meters" type="double" value="$(arg planner_distance_threshold)" />
       <param name="vehicle_path_topic" type="str" value="$(arg vehicle_path_topic)" />
+      <param name="vehicle_odom_topic" type="str" value="$(arg vehicle_odom_topic)" />
+      <param name="epsilon" type="double" value="$(arg planner_epsilon)" />
+      <param name="edge_cost_function" type="str" value="$(arg planner_edge_cost_function)" />
+      <param name="heuristic" type="str" value="$(arg planner_heuristic)" />
     </node>
 
     <node name="ackermann_controller_node" pkg="ackermann_controller" type="ackermann_controller_node" output=
     "screen">
-      <param name="look_ahead_distance" type="double" value="$(arg controller_look_ahead_distance)" />
+      <param name="lookahead_distance" type="double" value="$(arg controller_lookahead_distance)" />
       <param name="velocity" type="double" value="$(arg controller_velocity)" />
       <param name="vehicle_odom_topic" type="str" value="$(arg vehicle_odom_topic)" />
       <param name="vehicle_control_topic" type="str" value="$(arg vehicle_control_topic)" />
+      <param name="vehicle_path_topic" type="str" value="$(arg vehicle_path_topic)" />
+    </node>
+
+    <node name="ackermann_visualization_node" pkg="ackermann_visualization" type="ackermann_visualization_node" output=
+    "screen">
+      <param name="marker_visualization_topic" type="str" value="$(arg marker_visualization_topic)" />
       <param name="vehicle_path_topic" type="str" value="$(arg vehicle_path_topic)" />
     </node>
 

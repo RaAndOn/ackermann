@@ -10,10 +10,10 @@
 #include <ros/ros.h>
 
 #include <ackermann_planner/motion_primitive.hpp>
-#include <ackermann_planner/planner_utils.hpp>
+#include <ackermann_project/planner_utils.hpp>
 
 using FCost = double;
-using NodeIndex = long long int;
+using NodeIndex = long long unsigned;
 
 struct Node {
   State m_state;
@@ -50,11 +50,18 @@ public:
   /// and indexing states
   /// @param angularResolutionDegrees angular resolution used for discretizing
   /// and indexing states
+  /// @param epsilon Amount to weight the heuristic
+  /// @param heuristicFunction Name of the heuristic function, which will be
+  /// mapped to a lambda variable
+  /// @param edgeCostFunction Name of the edge cost function, which will be
+  /// mapped to a lambda variable
   AStar(const std::vector<Primitive> &primitives,
         const double distanceThresholdMeters,
         const double angularThresholdDegrees,
         const double distanceResolutionMeters,
-        const double angularResolutionDegrees);
+        const double angularResolutionDegrees, const double epsilon,
+        const std::string &heuristicFunction,
+        const std::string &edgeCostFunction);
 
   ~AStar();
 
@@ -62,16 +69,8 @@ public:
   /// define the search parameters
   /// @param startState State from which the search is starting
   /// @param goalState State to which the search is planning
-  /// @param epsilon Amount to weight the heuristic
-  /// @param heuristicFunction Name of the heuristic function, which will be
-  /// mapped to a lambda variable
-  /// @param edgeCostFunction Name of the edge cost function, which will be
-  /// mapped to a lambda variable
   /// @return Path from the start to goal state
-  boost::optional<Path> astar(const State &startState, const State &goalState,
-                              const int epsilon,
-                              const std::string &heuristicFunction,
-                              const std::string &edgeCostFunction);
+  boost::optional<Path> search(const State &startState, const State &goalState);
 
 private:
   /// @brief Node graph containing all nodes and their relationships
@@ -81,7 +80,7 @@ private:
   OpenList m_openList;
 
   /// @brief Weight on the heuristic when calculating the F cost
-  int m_epsilon;
+  double m_epsilon;
 
   /// @brief UNUSED
   int m_collisionThresh;
@@ -98,13 +97,14 @@ private:
   /// @brief Index of the state which planning is starting from
   NodeIndex m_startIndex;
 
-  /// @brief Linear threshold for determining if states are the same (meters)
+  /// @brief Linear threshold for determining if states are the same. Squared to
+  /// increase computation speed and avoid expensive square root (meters^2)
   double m_distanceThresholdSquared;
 
-  /// @brief Linear threshold for determining if states are the same (degrees)
+  /// @brief Angular threshold for determining if states are the same (degrees)
   double m_angularThreshold;
 
-  /// @brief Linea resolution for discretizing state into integers (meters)
+  /// @brief Linear resolution for discretizing state into integers (meters)
   double m_distanceResolution;
 
   /// @brief Angular resolution for discretizing state into integers (radians)
@@ -162,6 +162,13 @@ private:
     return fCost;
   }
 
+  /// @brief Determine the gear of the vehicle based on its movement along its
+  /// x-axis
+  /// @param directionOfMovement The direction of the vehicles movement along
+  /// its x-axis
+  /// @return The gear indicated by the direction of movement
+  Gear getGear(const double directionOfMovement);
+
   /// @brief This is the Szudzik Pairing algorithm which takes a pair of
   /// positive integers and makes them into a unique positive integer.
   /// https://www.vertexfragment.com/ramblings/cantor-szudzik-pairing-functions/
@@ -190,7 +197,7 @@ private:
   inline NodeIndex hashFunction(const State &state) const {
     // Make theta positive so we can use szudzik and get a tighter packing
     const NodeIndex theta{
-        static_cast<int>((state.m_theta + M_PI) / m_angularResolution)};
+        static_cast<unsigned>((state.m_theta + M_PI) / m_angularResolution)};
     if (theta < 0) {
       ROS_ERROR("Theta is negative");
       throw "";
@@ -205,11 +212,16 @@ private:
     }
     const NodeIndex index2{szudzikPair(index1, theta)};
     if (index2 < 0) {
+      ROS_ERROR("index1 is negative");
+      throw "";
+    }
+    const NodeIndex index3{szudzikPair(index2, state.m_gear)};
+    if (index3 < 0) {
       ROS_ERROR("ERROR: hashFunction Calculated "
                 "Node index is negative, "
                 "must be positive");
       throw "";
     }
-    return (state.m_gear == Gear::FORWARD) ? index2 : -index2;
+    return index3;
   };
 };

@@ -8,31 +8,32 @@ AStar::AStar(const std::vector<Primitive> &primitives,
              const double distanceThresholdMeters,
              const double angularThresholdDegrees,
              const double distanceResolutionMeters,
-             const double angularResolutionDegrees)
+             const double angularResolutionDegrees, const double epsilon,
+             const std::string &heuristicFunction,
+             const std::string &edgeCostFunction)
     : m_primitives{primitives}, m_distanceThresholdSquared{std::pow(
                                     distanceThresholdMeters, 2.0)},
       m_angularThreshold{M_PI * angularThresholdDegrees / 180},
       m_distanceResolution{distanceResolutionMeters},
       m_angularResolution{M_PI * angularResolutionDegrees / 180},
       m_collisionThresh{1} {
-  ROS_INFO("Instantiate AStar");
+  ROS_INFO("Set AStar as search algorithm");
+  // Set Variables
+  m_epsilon = epsilon;
+  // Set functions
+  setHeuristicFunction(heuristicFunction);
+  setEdgeCostFunction(edgeCostFunction);
 }
 
 AStar::~AStar() = default;
 
-boost::optional<Path> AStar::astar(const State &startState,
-                                   const State &goalState, const int epsilon,
-                                   const std::string &heuristicFunction,
-                                   const std::string &edgeCostFunction) {
+boost::optional<Path> AStar::search(const State &startState,
+                                    const State &goalState) {
   // Clear Data Structures
   m_nodeGraph.clear();
   m_openList = OpenList();
   // Set Variables
-  m_epsilon = epsilon;
   m_goalState = goalState;
-  // Set functions
-  setHeuristicFunction(heuristicFunction);
-  setEdgeCostFunction(edgeCostFunction);
   // Add start node to the graph and open list
   m_startIndex = hashFunction(startState);
   const auto startNodeIt = m_nodeGraph.emplace(
@@ -58,18 +59,24 @@ boost::optional<Path> AStar::astar(const State &startState,
 
 void AStar::getSuccessors(const Node &currentNode) {
   // Iterate over all the motion primitives to the node's successors
+  State currentState{currentNode.m_state};
   for (const auto &primitive : m_primitives) {
+    if (primitive.m_deltaX > 0.0 and currentState.m_gear == Gear::REVERSE) {
+      continue;
+    }
+    if (primitive.m_deltaX < 0.0 and currentState.m_gear == Gear::FORWARD) {
+      continue;
+    }
     // Create new successor state from primitive
-    const auto newTheta = ackermann::wrapToPi(currentNode.m_state.m_theta +
-                                              primitive.m_deltaTheta);
+    const auto newTheta =
+        wrapToPi(currentNode.m_state.m_theta + primitive.m_deltaTheta);
     const auto newX = currentNode.m_state.m_x +
                       primitive.m_deltaX * std::cos(newTheta) -
                       primitive.m_deltaY * std::sin(newTheta);
     const auto newY = currentNode.m_state.m_y +
                       primitive.m_deltaX * std::sin(newTheta) +
                       primitive.m_deltaY * std::cos(newTheta);
-    const auto newGear =
-        (primitive.m_deltaX > 0) ? Gear::FORWARD : Gear::REVERSE;
+    const auto newGear = getGear(primitive.m_deltaX);
     const State newState{newX, newY, newTheta, newGear};
     const NodeIndex newIndex{hashFunction(newState)};
     /// TODO: Add occupancy grid with cell cost
@@ -134,8 +141,10 @@ boost::optional<Path> AStar::getPath(const NodeIndex &endIndex) {
 
 bool AStar::checkIfSameState(const State &state1, const State &state2) {
   // Compare theta difference first, to avoid expensive euclidean calculation
-  const double thetaDiff{
-      std::abs(ackermann::wrapToPi(state1.m_theta - state2.m_theta))};
+  if (state1.m_gear != state2.m_gear) {
+    return false;
+  }
+  const double thetaDiff{std::abs(wrapToPi(state1.m_theta - state2.m_theta))};
   if (thetaDiff > m_angularThreshold) {
     return false;
   }
@@ -175,4 +184,17 @@ void AStar::setHeuristicFunction(const std::string &heuristicFunction) {
   }
   ROS_ERROR("ERROR: Valid Heuristic Function Not Provided");
   throw "";
+}
+
+Gear AStar::getGear(const double directionOfMovement) {
+  if (std::abs(directionOfMovement) < __DBL_EPSILON__) {
+    return Gear::STOP;
+  } else if (directionOfMovement > 0) {
+    return Gear::FORWARD;
+  } else if (directionOfMovement < 0) {
+    return Gear::REVERSE;
+  } else {
+    ROS_ERROR("ERROR: Could not determine vehicle gear");
+    throw "";
+  }
 }

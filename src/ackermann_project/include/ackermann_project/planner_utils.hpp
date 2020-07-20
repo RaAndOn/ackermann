@@ -2,7 +2,7 @@
 
 #include <ackermann_project/ackermann_utils.hpp>
 
-enum Gear { FORWARD, REVERSE };
+enum Gear { FORWARD = 0, STOP = 1, REVERSE = 2 };
 
 struct State {
   double m_x;
@@ -10,5 +10,5 @@ struct State {
   double m_theta;
   Gear m_gear;
   State(const double x, const double y, const double theta, const Gear &gear)
-      : m_x{x}, m_y{y}, m_theta{ackermann::wrapToPi(theta)}, m_gear{gear} {}
+      : m_x{x}, m_y{y}, m_theta{theta}, m_gear{gear} {}
 };

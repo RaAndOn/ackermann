@@ -73,6 +73,12 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
     ROS_ERROR("Parameter 'chassis_height' missing");
   }
 
+  if (sdf->HasElement("steering_limit_degrees")) {
+    m_steeringLimit = M_PI / 180 * sdf->Get<double>("steering_limit_degrees");
+  } else {
+    ROS_ERROR("Parameter 'steering_limit_degrees' missing");
+  }
+
   std::string vehicleOdomTopic;
   if (sdf->HasElement("vehicle_odom_topic")) {
     vehicleOdomTopic = sdf->Get<std::string>("vehicle_odom_topic");
@@ -87,7 +93,7 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
   }
 
   // Define Ground Truth Origin for tf broadcast and RVIZ visualization
-  m_groundTruthOrigin = m_baseLink->WorldCoGPose().Pos();
+  m_groundTruthOrigin = m_baseLink->WorldPose().Pos();
   m_groundTruthOrigin.Z() = chassisHeight - 2 * wheelRadius;
 
   ros::NodeHandle m_nh(m_robotNamespace);
@@ -190,7 +196,7 @@ void AckermannControlPlugin::OnUpdate() {
   groundTruthOdom.twist.twist.angular.y = currentAngularVelocity.Y();
   groundTruthOdom.twist.twist.angular.z = currentAngularVelocity.Z();
   // Get current world pose
-  const auto worldPose{m_baseLink->WorldCoGPose()};
+  const auto worldPose{m_baseLink->WorldPose()};
   // Set current position in ground truth message
   const auto worldPos{worldPose.Pos()};
   groundTruthOdom.pose.pose.position.x = worldPos.X();
@@ -311,6 +317,9 @@ void AckermannControlPlugin::controlCallback(
   m_desiredVelocity = cmd.twist.linear.x;
   // angular.z represents the desired steering angle of the vehicle (radians)
   m_desiredSteerAngle = cmd.twist.angular.z;
+  if (std::abs(m_desiredSteerAngle) > m_steeringLimit) {
+    m_desiredSteerAngle = m_steeringLimit * sign(m_desiredSteerAngle);
+  }
   // ROS_INFO("Desired Velocity: %s m/s",
   //          std::to_string(m_desiredVelocity).c_str());
   // ROS_INFO("Desired Steer Angle: %s radians",
