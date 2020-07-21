@@ -2,11 +2,12 @@
 
 #include <ackermann_project/ackermann_utils.hpp>
 
-double wrapToPi(const double angle) {
-  if (angle >= M_PI) {
-    return angle - 2 * M_PI;
-  } else if (angle < -M_PI) {
-    return 2 * M_PI + angle;
+double wrapToPi(double angle) {
+  while (angle >= M_PI) {
+    angle -= 2 * M_PI;
+  }
+  while (angle < -M_PI) {
+    angle += 2 * M_PI;
   }
   return angle;
 }
