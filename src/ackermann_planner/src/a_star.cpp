@@ -5,16 +5,11 @@
 #include <ackermann_planner/a_star.hpp>
 
 AStar::AStar(const std::vector<Primitive> &primitives,
-             const double distanceThresholdMeters,
-             const double angularThresholdDegrees,
              const double distanceResolutionMeters,
              const double angularResolutionDegrees, const double epsilon,
              const std::string &heuristicFunction,
              const std::string &edgeCostFunction)
-    : m_primitives{primitives}, m_distanceThresholdSquared{std::pow(
-                                    distanceThresholdMeters, 2.0)},
-      m_angularThreshold{M_PI * angularThresholdDegrees / 180},
-      m_distanceResolution{distanceResolutionMeters},
+    : m_primitives{primitives}, m_distanceResolution{distanceResolutionMeters},
       m_angularResolution{M_PI * angularResolutionDegrees / 180},
       m_collisionThresh{1} {
   ROS_INFO("Set AStar as search algorithm");
@@ -29,6 +24,8 @@ AStar::~AStar() = default;
 
 boost::optional<Path> AStar::search(const State &startState,
                                     const State &goalState) {
+  // Mark the start time of the search
+  const double begin = ros::Time::now().toSec();
   // Clear Data Structures
   m_nodeGraph.clear();
   m_openList = OpenList();
@@ -36,24 +33,39 @@ boost::optional<Path> AStar::search(const State &startState,
   m_goalState = goalState;
   // Add start node to the graph and open list
   m_startIndex = hashFunction(startState);
-  const auto startNodeIt = m_nodeGraph.emplace(
-      m_startIndex, Node{startState, m_startIndex, boost::none, 0});
+  const auto startNodeIt =
+      m_nodeGraph.emplace(m_startIndex, Node{m_nodeGraph.size(), startState,
+                                             m_startIndex, boost::none, 0});
   m_openList.emplace(addFCost(startNodeIt.first->second), m_startIndex);
+
+  auto goalIndex = hashFunction(m_goalState.get());
+  const auto goalNodeIt = m_nodeGraph.emplace(
+      goalIndex, Node{m_nodeGraph.size(), m_goalState.get(), goalIndex,
+                      boost::none, std::numeric_limits<Cost>::max()});
   // Keep expanding nodes while the open list is not empty
   while (not m_openList.empty()) {
     const auto currentNode{getNode(m_openList.top().second)};
+    const auto minKey{m_openList.top().first};
     m_openList.pop();
     if (m_epsilon <= 1) {
       currentNode->m_closed = true;
     }
-    if (checkIfSameState(currentNode->m_state, m_goalState.get())) {
+    if (goalNodeIt.first->second.m_gCost <= minKey and
+        goalNodeIt.first->second.m_gCost < std::numeric_limits<Cost>::max()) {
       ROS_INFO("PATH FOUND");
-      getSuccessors(*currentNode);
+      // Record how long it took to perform search
+      const double end = ros::Time::now().toSec();
+      m_latestSearchTime = end - begin;
+      // Return the path found
       return getPath(currentNode->m_index);
     }
     getSuccessors(*currentNode);
   }
   ROS_INFO("PATH NOT FOUND: Entire Configuration Space Expanded");
+  // Record how long it took to perform search
+  const double end = ros::Time::now().toSec();
+  m_latestSearchTime = end - begin;
+  // Return the none, indicating no path found
   return boost::none;
 }
 
@@ -103,7 +115,8 @@ void AStar::getSuccessors(const Node &currentNode) {
       }
       // Add node to the open list if the node does not exist in the graph
       const auto newNodeIt = m_nodeGraph.emplace(
-          newIndex, Node{newState, newIndex, currentNode.m_index, gCost});
+          newIndex, Node{m_nodeGraph.size(), newState, newIndex,
+                         currentNode.m_index, gCost});
       m_openList.emplace(addFCost(newNodeIt.first->second), newIndex);
     }
   }
@@ -137,21 +150,6 @@ boost::optional<Path> AStar::getPath(const NodeIndex &endIndex) {
   }
   std::reverse(std::begin(path), std::end(path));
   return path;
-}
-
-bool AStar::checkIfSameState(const State &state1, const State &state2) {
-  // Compare theta difference first, to avoid expensive euclidean calculation
-  if (state1.m_gear != state2.m_gear) {
-    return false;
-  }
-  const double thetaDiff{std::abs(wrapToPi(state1.m_theta - state2.m_theta))};
-  if (thetaDiff > m_angularThreshold) {
-    return false;
-  }
-  // Use squared distance for speed boost, avoiding expensive sqrt
-  const double euclidean{std::pow(state1.m_x - state2.m_x, 2.0) +
-                         std::pow(state1.m_y - state2.m_y, 2.0)};
-  return euclidean < m_distanceThresholdSquared;
 }
 
 void AStar::setEdgeCostFunction(const std::string &edgeCostFunction) {

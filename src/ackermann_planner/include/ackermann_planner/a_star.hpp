@@ -12,23 +12,24 @@
 #include <ackermann_planner/motion_primitive.hpp>
 #include <ackermann_project/planner_utils.hpp>
 
-using FCost = double;
-using NodeIndex = long long unsigned;
+using Cost = double;
+using NodeIndex = size_t;
 
 struct Node {
+  size_t m_expansionOrder;
   State m_state;
   boost::optional<NodeIndex> m_parentIndex;
-  double m_gCost;
+  Cost m_gCost;
   bool m_closed;
   NodeIndex m_index;
-  Node(const State &state, const NodeIndex index,
-       const boost::optional<NodeIndex> parentIndex, const double gCost)
-      : m_state{state}, m_index{index},
+  Node(const size_t expansionOrder, const State &state, const NodeIndex index,
+       const boost::optional<NodeIndex> parentIndex, const Cost gCost)
+      : m_expansionOrder{expansionOrder}, m_state{state}, m_index{index},
         m_parentIndex{parentIndex}, m_gCost{gCost}, m_closed{false} {}
 };
 
 using Path = std::vector<State>;
-using NodeRank = std::pair<FCost, NodeIndex>; // FCost and NodeIndex
+using NodeRank = std::pair<Cost, NodeIndex>; // Cost and NodeIndex
 using OpenList =
     std::priority_queue<NodeRank, std::vector<NodeRank>,
                         std::greater<NodeRank>>; // Min priority queue
@@ -42,10 +43,6 @@ public:
   /// position, steering angle of Theta.
   /// @param primitives vector of the primitives which are used for node
   /// expansion
-  /// @param distanceThresholdMeters linear threshold for determing if two
-  /// states are close enough to be considered the same.
-  /// @param angularThresholdDegrees angular threshold for determing if two
-  /// states are close enough to be considered the same.
   /// @param distanceResolutionMeters linear resolution used for discretizing
   /// and indexing states
   /// @param angularResolutionDegrees angular resolution used for discretizing
@@ -56,8 +53,6 @@ public:
   /// @param edgeCostFunction Name of the edge cost function, which will be
   /// mapped to a lambda variable
   AStar(const std::vector<Primitive> &primitives,
-        const double distanceThresholdMeters,
-        const double angularThresholdDegrees,
         const double distanceResolutionMeters,
         const double angularResolutionDegrees, const double epsilon,
         const std::string &heuristicFunction,
@@ -71,6 +66,18 @@ public:
   /// @param goalState State to which the search is planning
   /// @return Path from the start to goal state
   boost::optional<Path> search(const State &startState, const State &goalState);
+
+  /// @brief Returns the graph created in the search
+  /// @return The node graph
+  Graph getGraph() const { return m_nodeGraph; }
+
+  /// @brief Returns the size of the graph created in the search
+  /// @return The size of the graph created in the search
+  size_t getGraphSize() const { return m_nodeGraph.size(); }
+
+  /// @brief Returns the time in seconds taken to perform latest search
+  /// @return The time in seconds taken to perform latest search
+  double getLatestSearchTime() const { return m_latestSearchTime; }
 
 private:
   /// @brief Node graph containing all nodes and their relationships
@@ -97,13 +104,6 @@ private:
   /// @brief Index of the state which planning is starting from
   NodeIndex m_startIndex;
 
-  /// @brief Linear threshold for determining if states are the same. Squared to
-  /// increase computation speed and avoid expensive square root (meters^2)
-  double m_distanceThresholdSquared;
-
-  /// @brief Angular threshold for determining if states are the same (degrees)
-  double m_angularThreshold;
-
   /// @brief Linear resolution for discretizing state into integers (meters)
   double m_distanceResolution;
 
@@ -113,18 +113,13 @@ private:
   /// @brief Vector of the primitives which are used for node expansion
   const std::vector<Primitive> m_primitives;
 
+  /// @brief The amount of time taken to perform the latest search
+  double m_latestSearchTime;
+
   /// @brief Given a node, this function finds any legitimate successors and
   /// adds them to the node graph
   /// @param currentNode node whose successors should be gotten
   void getSuccessors(const Node &currentNode);
-
-  /// @brief Given a two states compare them and see if they are within the
-  /// threshold to be the same states
-  /// @param state1 The first state to be compared
-  /// @param state2 The second state to be compared
-  /// @return Boolean indicating whether two states are within in the threshold
-  /// to be considered the same
-  bool checkIfSameState(const State &state1, const State &state2);
 
   /// @brief The function will find and return a the node in the graph
   /// correspinding to an index
@@ -152,11 +147,11 @@ private:
   /// @brief Function to safely calculate F-cost, avoiding INT rollover
   /// @param node the predicted F-cost of the node
   /// @return Calculated F-cost
-  inline FCost addFCost(const Node &node) const {
-    const FCost fCost{node.m_gCost +
-                      m_heuristicFunction(node.m_state) * m_epsilon};
+  inline Cost addFCost(const Node &node) const {
+    const Cost fCost{node.m_gCost +
+                     m_heuristicFunction(node.m_state) * m_epsilon};
     if (fCost < 0) {
-      ROS_ERROR("ERROR: FCost was negative throwing");
+      ROS_ERROR("ERROR: fCost was negative throwing");
       throw "";
     }
     return fCost;
@@ -180,11 +175,21 @@ private:
   /// takes a pair of signed integers and makes them into a unique positive
   /// integer.
   /// https://www.vertexfragment.com/ramblings/cantor-szudzik-pairing-functions/
-  inline NodeIndex signedSzudzikPair(const NodeIndex x,
-                                     const NodeIndex y) const {
+  inline NodeIndex signedSzudzikPair(const int x, const int y) const {
     // Modification to Sudzik Pairing algorithm for negative numbers
-    const NodeIndex a = (x >= 0.0 ? 2.0 * x : (-2.0 * x) - 1.0);
-    const NodeIndex b = (y >= 0.0 ? 2.0 * y : (-2.0 * y) - 1.0);
+
+    // @NOTE I'm leaving a and b as ints, because it is unlikely to reach an
+    // overflow size naturally, and this allows for easy error checking
+    const int a = (x >= 0 ? 2 * x : (-2 * x) - 1);
+    if (a < 0) {
+      ROS_ERROR("ERROR: a is negative. a: %s | x: %s",
+                std::to_string(a).c_str(), std::to_string(x).c_str());
+    }
+    const int b = (y >= 0 ? 2 * y : (-2 * y) - 1);
+    if (b < 0) {
+      ROS_ERROR("ERROR: b is negative. b: %s | y: %s",
+                std::to_string(b).c_str(), std::to_string(y).c_str());
+    }
     // Szudzik Pairing Algorithm
     return szudzikPair(a, b);
     // * 0.5 <- Removed to ensure numbers are ints
@@ -196,30 +201,35 @@ private:
   /// @return the index for the graph
   inline NodeIndex hashFunction(const State &state) const {
     // Make theta positive so we can use szudzik and get a tighter packing
-    const NodeIndex theta{
-        static_cast<unsigned>((state.m_theta + M_PI) / m_angularResolution)};
-    if (theta < 0) {
+    const double thetaPositive{state.m_theta + M_PI};
+    // wrapToPi makes theta -Pi to Pi so we want to make it 0 to 2PI
+    if (thetaPositive < 0) {
       ROS_ERROR("Theta is negative");
       throw "";
     }
+    const NodeIndex theta{
+        static_cast<size_t>(thetaPositive / m_angularResolution)};
+
     const int x{static_cast<int>(state.m_x / m_distanceResolution)};
     const int y{static_cast<int>(state.m_y / m_distanceResolution)};
 
     const NodeIndex index1{signedSzudzikPair(x, y)};
-    if (index1 < 0) {
-      ROS_ERROR("index1 is negative");
-      throw "";
-    }
     const NodeIndex index2{szudzikPair(index1, theta)};
-    if (index2 < 0) {
-      ROS_ERROR("index1 is negative");
+    if (index2 < index1 or index2 < theta) {
+      ROS_ERROR(
+          "ERROR: Likely overflow. index2 is less than one of its components");
+      ROS_ERROR("index2: %s | index1: %s | theta: %s",
+                std::to_string(index2).c_str(), std::to_string(index1).c_str(),
+                std::to_string(theta).c_str());
       throw "";
     }
     const NodeIndex index3{szudzikPair(index2, state.m_gear)};
-    if (index3 < 0) {
-      ROS_ERROR("ERROR: hashFunction Calculated "
-                "Node index is negative, "
-                "must be positive");
+    if (index3 < index2 or index3 < state.m_gear) {
+      ROS_ERROR(
+          "ERROR: Likely overflow. index3 is less than one of its components");
+      ROS_ERROR("index2: %s | index2: %s | index3: %s",
+                std::to_string(index3).c_str(), std::to_string(index2).c_str(),
+                std::to_string(state.m_gear).c_str());
       throw "";
     }
     return index3;

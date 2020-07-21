@@ -25,6 +25,8 @@ private:
 
   /// @brief Publisher of path
   ros::Publisher m_pathPub;
+  /// @brief Publisher of markers of node expansion from search, for debugging
+  ros::Publisher m_debugMarkerPub;
 
   /// @brief Subscriber to the vehicle state topic
   ros::Subscriber m_vehicleSub;
@@ -48,12 +50,6 @@ private:
   /// @brief Number of steering increments to each side when calculating motion
   /// primitives
   const int m_steeringIncrements;
-
-  /// @brief Angular threshold for determining if states are the same (degrees)
-  const double m_angularThresholdDegrees;
-
-  /// @brief Linear threshold for determining if states are the same (meters)
-  const double m_distanceThreshold;
 
   /// @brief Weight on the heuristic function for an A* planner
   const double m_epsilon;
@@ -85,18 +81,28 @@ private:
   /// @brief Name of the topic which publishes the vehicle state
   const std::string m_vehicleOdomTopic;
 
+  /// @brief Name of the topic which publishes the states expanded during search
+  const std::string m_searchDebugTopic;
+
   /// @brief Mutex to lock threads when variables are being used
   std::mutex m_plannerMutex;
 
   /// @brief Variable holds the latest vehicle state
   nav_msgs::Odometry m_vehicleState;
 
-  /// @brief Service call to find a path form the vehicle's current state to a
-  /// goal state
+  /// @brief Flag for whether to use debug features
+  const bool m_debug;
+
+  /// @brief Service call to find a path form the vehicle's current state to
+  /// a goal state
   bool planPath(ackermann_planner::Goal::Request &req,
                 ackermann_planner::Goal::Response &res);
 
   /// @brief Updates the vehicle state.
   /// @param odom The latest vehicle state
   void updateStateCallback(const nav_msgs::Odometry &odom);
+
+  /// @brief This function takes all of the node expansions from the search and
+  /// publishes them to RVIZ
+  void visualizeNodeExpansions();
 };
