@@ -1,23 +1,33 @@
 #include <algorithm> // max and reverese
 #include <cmath>
 #include <iterator>
+#include <sstream>
 
 #include <ackermann_planner/a_star.hpp>
 
 AStar::AStar(const std::vector<Primitive> &primitives,
              const double distanceResolutionMeters,
              const double angularResolutionDegrees, const double epsilon,
-             const std::string &heuristicFunction,
+             const std::string &heuristicFunctions,
              const std::string &edgeCostFunction)
     : m_primitives{primitives}, m_distanceResolution{distanceResolutionMeters},
       m_angularResolution{M_PI * angularResolutionDegrees / 180},
-      m_collisionThresh{1} {
+      m_collisionThresh{1}, m_epsilon{epsilon} {
   ROS_INFO("Set AStar as search algorithm");
-  // Set Variables
-  m_epsilon = epsilon;
+
+  // Split heuristic functions string into vector
+  std::vector<std::string> heuristicVector;
+  std::stringstream heuristicStream(heuristicFunctions);
+  while (heuristicStream.good()) {
+    std::string heuristic;
+    // get first string delimited by comma
+    getline(heuristicStream, heuristic, ',');
+    heuristicVector.push_back(heuristic);
+  }
+
   // Set functions
-  setHeuristicFunction(heuristicFunction);
-  setEdgeCostFunction(edgeCostFunction);
+  setHeuristicLambdaFunctions(heuristicVector);
+  setEdgeCostLambdaFunction(edgeCostFunction);
 }
 
 AStar::~AStar() = default;
@@ -50,6 +60,7 @@ boost::optional<Path> AStar::search(const State &startState,
     if (m_epsilon <= 1) {
       currentNode->m_closed = true;
     }
+    // This is equivalent to the condition of goal node having been expanded
     if (goalNodeIt.first->second.m_gCost <= minKey and
         goalNodeIt.first->second.m_gCost < std::numeric_limits<Cost>::max()) {
       ROS_INFO("PATH FOUND");
@@ -57,7 +68,7 @@ boost::optional<Path> AStar::search(const State &startState,
       const double end = ros::Time::now().toSec();
       m_latestSearchTime = end - begin;
       // Return the path found
-      return getPath(currentNode->m_index);
+      return getPath(goalIndex);
     }
     getSuccessors(*currentNode);
   }
@@ -152,7 +163,7 @@ boost::optional<Path> AStar::getPath(const NodeIndex &endIndex) {
   return path;
 }
 
-void AStar::setEdgeCostFunction(const std::string &edgeCostFunction) {
+void AStar::setEdgeCostLambdaFunction(const std::string &edgeCostFunction) {
   if (edgeCostFunction == "Simple") {
     m_edgeCostFunction = [this](const Primitive &primitive) { return 1; };
     return;
@@ -168,20 +179,43 @@ void AStar::setEdgeCostFunction(const std::string &edgeCostFunction) {
   throw "";
 }
 
-void AStar::setHeuristicFunction(const std::string &heuristicFunction) {
-  if (heuristicFunction == "Euclidean") {
-    m_heuristicFunction = [this](const State &state) {
-      return std::sqrt(std::pow(state.m_x - m_goalState->m_x, 2.0) +
-                       std::pow(state.m_y - m_goalState->m_y, 2.0));
-    };
-    return;
+void AStar::setHeuristicLambdaFunctions(
+    std::vector<std::string> heuristicVector) {
+  // The first function is set as the anchor heuristic and all other functions
+  // are added as inadmissable heuristics.
+
+  // Initialize variables
+  auto heuristic{&m_anchorHeuristic};
+  bool anchor{true};
+  while (not heuristicVector.empty()) {
+    // Get first heuristic in vector
+    auto heuristicFunction{heuristicVector.front()};
+    // Delete first heuristic from vector
+    heuristicVector.erase(heuristicVector.begin());
+    if (not anchor) {
+      heuristic = new Heuristic{};
+    }
+    if (heuristicFunction == "Euclidean") {
+      *heuristic = [this](const State &state) {
+        return std::sqrt(std::pow(state.m_x - m_goalState->m_x, 2.0) +
+                         std::pow(state.m_y - m_goalState->m_y, 2.0));
+      };
+    } else if (heuristicFunction == "None") {
+      *heuristic = [this](const State &state) { return 0; };
+    } else {
+      ROS_ERROR("ERROR: Valid Heuristic Function Not Provided");
+      throw "";
+    }
+    // Report the heuristics to the command line
+    if (anchor) {
+      ROS_INFO("Admissable Heuristic set as %s", heuristicFunction.c_str());
+    } else {
+      m_inadmissableHeuristics.push_back(*heuristic);
+      ROS_INFO("Inadmissable Heuristic set as %s", heuristicFunction.c_str());
+    }
+    // Ensure all heuristics after the first are inadmissable
+    anchor = false;
   }
-  if (heuristicFunction == "None") {
-    m_heuristicFunction = [this](const State &state) { return 0; };
-    return;
-  }
-  ROS_ERROR("ERROR: Valid Heuristic Function Not Provided");
-  throw "";
 }
 
 Gear AStar::getGear(const double directionOfMovement) {

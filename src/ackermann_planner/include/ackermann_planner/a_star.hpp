@@ -92,8 +92,12 @@ private:
   /// @brief UNUSED
   int m_collisionThresh;
 
-  /// @brief Lambda function holding the chosen heuristic function
-  Heuristic m_heuristicFunction;
+  /// @brief Lambda function representing the admissable heuristic function
+  Heuristic m_anchorHeuristic;
+
+  /// @brief Vector of lambda functions representing inadmissable heuristics for
+  /// MHA*
+  std::vector<Heuristic> m_inadmissableHeuristics;
 
   /// @brief Lambda function holding the chosen edge cost function
   EdgeCost m_edgeCostFunction;
@@ -136,20 +140,20 @@ private:
 
   /// @brief Set a heuristic lambda function variable to the indicated lambda
   /// function
-  /// @param heuristicFunction indication of which heuristic function to use
-  void setHeuristicFunction(const std::string &heuristicFunction);
+  /// @param heuristicVector vector of heuristic functions to use
+  void setHeuristicLambdaFunctions(std::vector<std::string> heuristicVector);
 
   /// @brief Set a edge cost lambda function variable to the indicated lambda
   /// function
   /// @param edgeCostFunction indication of which edge cost function to use
-  void setEdgeCostFunction(const std::string &edgeCostFunction);
+  void setEdgeCostLambdaFunction(const std::string &edgeCostFunction);
 
   /// @brief Function to safely calculate F-cost, avoiding INT rollover
   /// @param node the predicted F-cost of the node
   /// @return Calculated F-cost
   inline Cost addFCost(const Node &node) const {
     const Cost fCost{node.m_gCost +
-                     m_heuristicFunction(node.m_state) * m_epsilon};
+                     m_anchorHeuristic(node.m_state) * m_epsilon};
     if (fCost < 0) {
       ROS_ERROR("ERROR: fCost was negative throwing");
       throw "";

@@ -55,7 +55,7 @@ private:
   const double m_epsilon;
 
   /// @brief Name of the heuristic function
-  const std::string m_heuristicFunction;
+  const std::string m_heuristicFunctions;
 
   /// @brief Name of the edge cost function
   const std::string m_edgeCostFunction;

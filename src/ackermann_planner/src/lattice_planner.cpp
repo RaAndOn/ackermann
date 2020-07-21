@@ -24,14 +24,14 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
       m_angularResolutionDegrees{m_motionPrimitiveCalc.getAngularResolution() *
                                  180 / M_PI},
       m_epsilon{getROSParam(m_privateNH, "epsilon", 1.0)},
-      m_heuristicFunction{
+      m_heuristicFunctions{
           getROSParamString(m_privateNH, "heuristic", "Euclidean")},
       m_edgeCostFunction{
           getROSParamString(m_privateNH, "edge_cost_function", "Euclidean")},
       // Instantiate Search Method
       m_search{m_motionPrimitivesVector,   m_distanceResolution,
                m_angularResolutionDegrees, m_epsilon,
-               m_heuristicFunction,        m_edgeCostFunction},
+               m_heuristicFunctions,       m_edgeCostFunction},
       // Instantiate Topic Names
       m_pathTopic{getROSParamString(m_privateNH, "vehicle_path_topic", "path")},
       m_vehicleOdomTopic{
