@@ -51,12 +51,6 @@ private:
   /// primitives
   const int m_steeringIncrements;
 
-  /// @brief Angular threshold for determining if states are the same (degrees)
-  const double m_angularThresholdDegrees;
-
-  /// @brief Linear threshold for determining if states are the same (meters)
-  const double m_distanceThreshold;
-
   /// @brief Weight on the heuristic function for an A* planner
   const double m_epsilon;
 

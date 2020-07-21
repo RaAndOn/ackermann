@@ -25,8 +25,6 @@
   <arg name="planner_discretization_degrees" default="22.5" />
   <arg name="planner_steering_increments" default="1" />
   <arg name="planner_velocity" default="1.0" /> <!-- m/s -->
-  <arg name="planner_angular_threshold_degrees" default="15.0" /> <!-- degrees -->
-  <arg name="planner_distance_threshold" default="1.0" /> <!-- m -->
   <arg name="planner_epsilon" default="1.0" />
   <arg name="planner_edge_cost_function" default="Euclidean" />
   <arg name="planner_heuristic" default="Euclidean" />
@@ -63,8 +61,6 @@
       <param name="discretization_degrees" type="double" value="$(arg planner_discretization_degrees)" />
       <param name="steering_increments" type="int" value="$(arg planner_steering_increments)" />
       <param name="velocity" type="double" value="$(arg planner_velocity)" />
-      <param name="angular_threshold_degrees" type="double" value="$(arg planner_angular_threshold_degrees)" />
-      <param name="distance_threshold_meters" type="double" value="$(arg planner_distance_threshold)" />
       <param name="vehicle_path_topic" type="str" value="$(arg vehicle_path_topic)" />
       <param name="vehicle_odom_topic" type="str" value="$(arg vehicle_odom_topic)" />
       <param name="epsilon" type="double" value="$(arg planner_epsilon)" />

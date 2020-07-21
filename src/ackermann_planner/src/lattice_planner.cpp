@@ -23,18 +23,13 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
       m_distanceResolution{m_motionPrimitiveCalc.getDistanceResolution()},
       m_angularResolutionDegrees{m_motionPrimitiveCalc.getAngularResolution() *
                                  180 / M_PI},
-      m_angularThresholdDegrees{
-          getROSParam(m_privateNH, "angular_threshold_degrees", 15.0)},
-      m_distanceThreshold{
-          getROSParam(m_privateNH, "distance_threshold_meters", 1.0)},
       m_epsilon{getROSParam(m_privateNH, "epsilon", 1.0)},
       m_heuristicFunction{
           getROSParamString(m_privateNH, "heuristic", "Euclidean")},
       m_edgeCostFunction{
           getROSParamString(m_privateNH, "edge_cost_function", "Euclidean")},
       // Instantiate Search Method
-      m_search{m_motionPrimitivesVector,   m_distanceThreshold,
-               m_angularThresholdDegrees,  m_distanceResolution,
+      m_search{m_motionPrimitivesVector,   m_distanceResolution,
                m_angularResolutionDegrees, m_epsilon,
                m_heuristicFunction,        m_edgeCostFunction},
       // Instantiate Topic Names

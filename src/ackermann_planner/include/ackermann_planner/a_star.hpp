@@ -12,24 +12,24 @@
 #include <ackermann_planner/motion_primitive.hpp>
 #include <ackermann_project/planner_utils.hpp>
 
-using FCost = double;
+using Cost = double;
 using NodeIndex = size_t;
 
 struct Node {
   size_t m_expansionOrder;
   State m_state;
   boost::optional<NodeIndex> m_parentIndex;
-  double m_gCost;
+  Cost m_gCost;
   bool m_closed;
   NodeIndex m_index;
   Node(const size_t expansionOrder, const State &state, const NodeIndex index,
-       const boost::optional<NodeIndex> parentIndex, const double gCost)
+       const boost::optional<NodeIndex> parentIndex, const Cost gCost)
       : m_expansionOrder{expansionOrder}, m_state{state}, m_index{index},
         m_parentIndex{parentIndex}, m_gCost{gCost}, m_closed{false} {}
 };
 
 using Path = std::vector<State>;
-using NodeRank = std::pair<FCost, NodeIndex>; // FCost and NodeIndex
+using NodeRank = std::pair<Cost, NodeIndex>; // Cost and NodeIndex
 using OpenList =
     std::priority_queue<NodeRank, std::vector<NodeRank>,
                         std::greater<NodeRank>>; // Min priority queue
@@ -43,10 +43,6 @@ public:
   /// position, steering angle of Theta.
   /// @param primitives vector of the primitives which are used for node
   /// expansion
-  /// @param distanceThresholdMeters linear threshold for determing if two
-  /// states are close enough to be considered the same.
-  /// @param angularThresholdDegrees angular threshold for determing if two
-  /// states are close enough to be considered the same.
   /// @param distanceResolutionMeters linear resolution used for discretizing
   /// and indexing states
   /// @param angularResolutionDegrees angular resolution used for discretizing
@@ -57,8 +53,6 @@ public:
   /// @param edgeCostFunction Name of the edge cost function, which will be
   /// mapped to a lambda variable
   AStar(const std::vector<Primitive> &primitives,
-        const double distanceThresholdMeters,
-        const double angularThresholdDegrees,
         const double distanceResolutionMeters,
         const double angularResolutionDegrees, const double epsilon,
         const std::string &heuristicFunction,
@@ -110,13 +104,6 @@ private:
   /// @brief Index of the state which planning is starting from
   NodeIndex m_startIndex;
 
-  /// @brief Linear threshold for determining if states are the same. Squared to
-  /// increase computation speed and avoid expensive square root (meters^2)
-  double m_distanceThresholdSquared;
-
-  /// @brief Angular threshold for determining if states are the same (degrees)
-  double m_angularThreshold;
-
   /// @brief Linear resolution for discretizing state into integers (meters)
   double m_distanceResolution;
 
@@ -133,14 +120,6 @@ private:
   /// adds them to the node graph
   /// @param currentNode node whose successors should be gotten
   void getSuccessors(const Node &currentNode);
-
-  /// @brief Given a two states compare them and see if they are within the
-  /// threshold to be the same states
-  /// @param state1 The first state to be compared
-  /// @param state2 The second state to be compared
-  /// @return Boolean indicating whether two states are within in the threshold
-  /// to be considered the same
-  bool checkIfSameState(const State &state1, const State &state2);
 
   /// @brief The function will find and return a the node in the graph
   /// correspinding to an index
@@ -168,11 +147,11 @@ private:
   /// @brief Function to safely calculate F-cost, avoiding INT rollover
   /// @param node the predicted F-cost of the node
   /// @return Calculated F-cost
-  inline FCost addFCost(const Node &node) const {
-    const FCost fCost{node.m_gCost +
-                      m_heuristicFunction(node.m_state) * m_epsilon};
+  inline Cost addFCost(const Node &node) const {
+    const Cost fCost{node.m_gCost +
+                     m_heuristicFunction(node.m_state) * m_epsilon};
     if (fCost < 0) {
-      ROS_ERROR("ERROR: FCost was negative throwing");
+      ROS_ERROR("ERROR: fCost was negative throwing");
       throw "";
     }
     return fCost;
