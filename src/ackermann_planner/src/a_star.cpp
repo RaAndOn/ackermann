@@ -4,13 +4,15 @@
 #include <sstream>
 
 #include <ackermann_planner/a_star.hpp>
+#include <utility>
 
-AStar::AStar(const std::vector<Primitive> &primitives,
+AStar::AStar(std::vector<Primitive> primitives,
              const double distanceResolutionMeters,
              const double angularResolutionDegrees, const double epsilon,
              const std::string &heuristicFunction,
              const std::string &edgeCostFunction, const bool debug)
-    : m_primitives{primitives}, m_distanceResolution{distanceResolutionMeters},
+    : m_primitives{std::move(primitives)},
+      m_distanceResolution{distanceResolutionMeters},
       m_angularResolution{M_PI * angularResolutionDegrees / 180},
       m_collisionThresh{1}, m_epsilon{epsilon}, m_debug{debug} {
   ROS_INFO_COND(m_debug, "Initialize AStar search class");
@@ -56,9 +58,8 @@ boost::optional<Path> AStar::search(const State &startState,
   // Return the path
   if (foundPath) {
     return getPath(goalIndex);
-  } else {
-    return boost::none;
   }
+  return boost::none;
 }
 
 bool AStar::aStar(const Node &goalNode) {
@@ -217,9 +218,10 @@ void AStar::setHeuristicLambdaFunctions(Heuristic *heuristicLambda,
 Gear AStar::getGear(const double directionOfMovement) {
   if (std::abs(directionOfMovement) < std::numeric_limits<double>::epsilon()) {
     return Gear::STOP;
-  } else if (directionOfMovement > 0) {
+  }
+  if (directionOfMovement > 0) {
     return Gear::FORWARD;
-  } else if (directionOfMovement < 0) {
+  } if (directionOfMovement < 0) {
     return Gear::REVERSE;
   } else {
     ROS_ERROR("ERROR: Could not determine vehicle gear");

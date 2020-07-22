@@ -17,7 +17,7 @@ class MotionPrimitive {
 public:
   MotionPrimitive(const double wheelBase, const double velocity,
                   const double dt, const double angleDiscretizationDegrees,
-                  const int numberOfPrimitives);
+                  const int numberOfDiscretizations);
 
   ~MotionPrimitive();
 

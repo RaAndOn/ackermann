@@ -20,7 +20,7 @@ MotionPrimitive::MotionPrimitive(const double wheelBase, const double velocity,
   /// Set distance resolution for planner as half of a straight forward movement
   m_distanceResolution = m_primitiveVector.back().m_deltaX * .75;
   calculateMotionPrimitive(0, false);
-  m_primitiveVector.push_back(Primitive{0, 0, 0});
+  m_primitiveVector.emplace_back(0, 0, 0);
   for (int i = 1; i <= numberOfDiscretizations; ++i) {
     double steerAngle{m_angleDiscretization / static_cast<double>(i)};
     calculateMotionPrimitive(steerAngle, true);
@@ -108,5 +108,5 @@ void MotionPrimitive::calculateMotionPrimitive(const double steerAngle,
   double deltaY = m_arcLength * std::sin(arcMeasure);
   double deltaTheta = gear * arcMeasure;
 
-  m_primitiveVector.push_back(Primitive{deltaX, deltaY, deltaTheta});
+  m_primitiveVector.emplace_back(deltaX, deltaY, deltaTheta);
 }

@@ -35,7 +35,7 @@ public:
   /// @param edgeCostFunction Name of the edge cost function, which will be
   /// mapped to a lambda variable
   /// @param debug Flag to indicate whether to use certain print statements
-  AStar(const std::vector<Primitive> &primitives,
+  AStar(std::vector<Primitive> primitives,
         const double distanceResolutionMeters,
         const double angularResolutionDegrees, const double epsilon,
         const std::string &heuristicFunction,
@@ -89,7 +89,7 @@ protected:
   boost::optional<State> m_goalState;
 
   /// @brief Index of the state which planning is starting from
-  NodeIndex m_startIndex;
+  NodeIndex m_startIndex{};
 
   /// @brief Linear resolution for discretizing state into integers (meters)
   double m_distanceResolution;
@@ -101,7 +101,7 @@ protected:
   const std::vector<Primitive> m_primitives;
 
   /// @brief The amount of time taken to perform the latest search
-  double m_latestSearchTime;
+  double m_latestSearchTime{};
 
   /// @brief Given a node, this function finds any legitimate successors and
   /// adds them to the node graph

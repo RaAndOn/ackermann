@@ -109,7 +109,7 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
 
   // Full marker array and path with states
   if (path) {
-    res.success = true;
+    res.success = 1u;
     for (const auto &state : path.get()) {
       ackermann_msgs::AckermannPoseStamped poseMsg;
       poseMsg.header.frame_id = m_vehicleOdomTopic;
@@ -125,7 +125,7 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
       pathMsg.poses.push_back(poseMsg);
     }
   } else {
-    res.success = false;
+    res.success = 0u;
     ROS_ERROR("No path found");
   }
 
@@ -162,7 +162,7 @@ void LatticePlanner::visualizeNodeExpansions() {
     tf2::convert(quat, orientation);
     // Create marker to represent pose and gear
     ackermannMarker(marker, node.second.m_expansionOrder, position, orientation,
-                    color, (Gear)node.second.m_state.m_gear);
+                    color, node.second.m_state.m_gear);
 
     // Add marker to marker array
     markerArray.markers.push_back(marker);

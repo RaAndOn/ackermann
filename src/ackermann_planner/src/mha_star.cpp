@@ -80,9 +80,8 @@ boost::optional<Path> MHAStar::search(const State &startState,
   // Return the path
   if (foundPath) {
     return getPath(goalIndex);
-  } else {
-    return boost::none;
   }
+  return boost::none;
 }
 
 void MHAStar::addNodeToOpenList(const Node &node) {

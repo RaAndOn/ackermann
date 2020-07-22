@@ -40,7 +40,7 @@ void AckermannVisualization::addMarkerToArray(
   color.b = 0.0;
   // Create marker to represent pose and gear
   ackermannMarker(marker, markerArray.markers.size(), pose.pose.position,
-                  pose.pose.orientation, color, (Gear)pose.pose.gear);
+                  pose.pose.orientation, color, static_cast<Gear>(pose.pose.gear));
   // Set Marker specifics
   marker.header.frame_id = pose.header.frame_id;
   marker.header.stamp = ros::Time();
