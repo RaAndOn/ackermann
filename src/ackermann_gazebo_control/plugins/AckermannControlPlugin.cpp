@@ -246,14 +246,14 @@ void AckermannControlPlugin::OnUpdate() {
   double flWheelForceCmd = m_flWheelSteerAnglePID.Update(flError, dt);
   double frWheelForceCmd = m_frWheelSteerAnglePID.Update(frError, dt);
 
-  if (std::abs(flError) > DBL_EPSILON) {
+  if (std::abs(flError) > std::numeric_limits<double>::epsilon()) {
     // Apply the new force commands
     // TODO: Figure out what "0" means, I've tried "1" and "2" as well, no
     // difference
     m_flWheelSteeringJoint->SetForce(0, flWheelForceCmd);
   }
 
-  if (std::abs(frError) > DBL_EPSILON) {
+  if (std::abs(frError) > std::numeric_limits<double>::epsilon()) {
     // Apply the new force commands
     // TODO: Figure out what "0" means, I've tried "1" and "2" as well, no
     // difference

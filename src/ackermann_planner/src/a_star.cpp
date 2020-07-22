@@ -13,9 +13,9 @@ AStar::AStar(const std::vector<Primitive> &primitives,
     : m_primitives{primitives}, m_distanceResolution{distanceResolutionMeters},
       m_angularResolution{M_PI * angularResolutionDegrees / 180},
       m_collisionThresh{1}, m_epsilon{epsilon} {
-  ROS_INFO("Set AStar as search algorithm");
+  ROS_INFO("Initialize search Class");
 
-  // Split heuristic functions string into vector
+  // Split heuristic function string into vector
   std::vector<std::string> heuristicVector;
   std::stringstream heuristicStream(heuristicFunctions);
   while (heuristicStream.good()) {
@@ -25,7 +25,7 @@ AStar::AStar(const std::vector<Primitive> &primitives,
     heuristicVector.push_back(heuristic);
   }
 
-  // Set functions
+  // Set heuristic and edge cost functions
   setHeuristicLambdaFunctions(heuristicVector);
   setEdgeCostLambdaFunction(edgeCostFunction);
 }
@@ -38,49 +38,138 @@ boost::optional<Path> AStar::search(const State &startState,
   const double begin = ros::Time::now().toSec();
   // Clear Data Structures
   m_nodeGraph.clear();
-  m_openList = OpenList();
+  m_anchorOpenList = OpenList();
+  m_inadmissableOpenVector =
+      std::vector<OpenList>{m_inadmissableHeuristics.size()};
   // Set Variables
   m_goalState = goalState;
   // Add start node to the graph and open list
   m_startIndex = hashFunction(startState);
+
+  m_startIndex = hashFunction(startState);
   const auto startNodeIt =
       m_nodeGraph.emplace(m_startIndex, Node{m_nodeGraph.size(), startState,
                                              m_startIndex, boost::none, 0});
-  m_openList.emplace(addFCost(startNodeIt.first->second), m_startIndex);
+
+  addNodeToOpenLists(startNodeIt.first->second);
 
   auto goalIndex = hashFunction(m_goalState.get());
   const auto goalNodeIt = m_nodeGraph.emplace(
       goalIndex, Node{m_nodeGraph.size(), m_goalState.get(), goalIndex,
                       boost::none, std::numeric_limits<Cost>::max()});
-  // Keep expanding nodes while the open list is not empty
-  while (not m_openList.empty()) {
-    const auto currentNode{getNode(m_openList.top().second)};
-    const auto minKey{m_openList.top().first};
-    m_openList.pop();
-    if (m_epsilon <= 1) {
-      currentNode->m_closed = true;
-    }
-    // This is equivalent to the condition of goal node having been expanded
-    if (goalNodeIt.first->second.m_gCost <= minKey and
-        goalNodeIt.first->second.m_gCost < std::numeric_limits<Cost>::max()) {
-      ROS_INFO("PATH FOUND");
-      // Record how long it took to perform search
-      const double end = ros::Time::now().toSec();
-      m_latestSearchTime = end - begin;
-      // Return the path found
-      return getPath(goalIndex);
-    }
-    getSuccessors(*currentNode);
+
+  bool foundPath{false};
+  // Perform search
+  if (m_inadmissableHeuristics.empty()) {
+    ROS_INFO("AStar");
+    foundPath = aStar(goalNodeIt.first->second);
+  } else {
+    ROS_INFO("MHAStar");
+    foundPath = mhaStar(goalNodeIt.first->second);
   }
-  ROS_INFO("PATH NOT FOUND: Entire Configuration Space Expanded");
   // Record how long it took to perform search
   const double end = ros::Time::now().toSec();
   m_latestSearchTime = end - begin;
-  // Return the none, indicating no path found
-  return boost::none;
+
+  if (foundPath) {
+    return getPath(goalIndex);
+  } else {
+    return boost::none;
+  }
 }
 
-void AStar::getSuccessors(const Node &currentNode) {
+bool AStar::aStar(const Node &goalNode) {
+  // Keep expanding nodes while the open list is not empty
+  while (not m_anchorOpenList.empty()) {
+    // Get the node off the top of the priority queue
+    const auto currentNode{getNode(m_anchorOpenList.top().second)};
+    const auto minKey{m_anchorOpenList.top().first};
+    m_anchorOpenList.pop();
+    // This is equivalent to the condition of goal node having been expanded
+    if (goalNode.m_gCost <= minKey and
+        goalNode.m_gCost < std::numeric_limits<Cost>::max()) {
+      ROS_INFO("PATH FOUND");
+      // Return true, indicating path found
+      return true;
+    }
+    // Expand the current node
+    getSuccessors(*currentNode, m_anchorHeuristic);
+    // Add the current node to the closed list
+    if (m_epsilon <= 1) {
+      currentNode->m_anchorClosed = true;
+    }
+  }
+  ROS_INFO("PATH NOT FOUND: Entire Configuration Space Expanded");
+  // Return false, indicating no path found
+  return false;
+}
+
+void AStar::addNodeToOpenLists(const Node &node) {
+  if (not node.m_anchorClosed) {
+    m_anchorOpenList.emplace(addFCost(node, m_anchorHeuristic), node.m_index);
+  }
+
+  if (not node.m_inadmissableClosed) {
+    for (size_t i = 0; i < m_inadmissableHeuristics.size(); ++i) {
+      const auto fCost{addFCost(node, m_inadmissableHeuristics[i])};
+      m_inadmissableOpenVector[i].emplace(fCost, node.m_index);
+    }
+  }
+}
+
+bool AStar::mhaStar(const Node &goalNode) {
+  // Keep expanding nodes while the open list is not empty
+  while (not m_anchorOpenList.empty()) {
+    // Alternate between inadmissable heuristics
+    for (size_t i = 0; i < m_inadmissableHeuristics.size(); ++i) {
+      // Get the node off the top of the priority queue
+      const auto minKeyInadmissable{m_inadmissableOpenVector[i].top().first};
+      const auto minKeyAnchor{m_anchorOpenList.top().first};
+      if (minKeyInadmissable <= minKeyAnchor) {
+        // These conditions are equivalent to the goal node having been expanded
+        if (goalNode.m_gCost <= minKeyInadmissable) {
+          if (goalNode.m_gCost < std::numeric_limits<Cost>::max()) {
+            ROS_INFO("PATH FOUND");
+            // Return indicating a path wasfound
+            return true;
+          }
+        } else {
+          // Get the top node off of the current inadmissable open vector
+          const auto currentNode{
+              getNode(m_inadmissableOpenVector[i].top().second)};
+          m_inadmissableOpenVector[i].pop();
+          // Expand the node
+          getSuccessors(*currentNode, m_inadmissableHeuristics[i], false);
+          // Add the node to the inadmissable closed list
+          currentNode->m_inadmissableClosed = true;
+        }
+      } else {
+        // These conditions are equivalent to the goal node having been expanded
+        if (goalNode.m_gCost <= minKeyAnchor) {
+          if (goalNode.m_gCost < std::numeric_limits<Cost>::max()) {
+            ROS_INFO("PATH FOUND");
+            // Return indicating a path wasfound
+            return true;
+          }
+        } else {
+          // Get the top node off of the current admissable open vector
+          const auto currentNode{getNode(m_anchorOpenList.top().second)};
+          m_anchorOpenList.pop();
+          // Expand the node
+          getSuccessors(*currentNode, m_anchorHeuristic, true);
+          // Add the node to the admissable closed list
+          currentNode->m_anchorClosed = true;
+        }
+      }
+    }
+  }
+  ROS_INFO("PATH NOT FOUND: Entire Configuration Space Expanded");
+  // Return false, indicating no path found
+  return false;
+}
+
+void AStar::getSuccessors(const Node &currentNode, const Heuristic &heuristic,
+                          const bool anchor) {
   // Iterate over all the motion primitives to the node's successors
   State currentState{currentNode.m_state};
   for (const auto &primitive : m_primitives) {
@@ -112,15 +201,18 @@ void AStar::getSuccessors(const Node &currentNode) {
       if (existingNode) {
         // Update the node if is not closed and the cost to come is better then
         // add it back to the open list
-        if (not existingNode->m_closed and gCost < existingNode->m_gCost) {
-          existingNode->m_gCost = gCost;
-          existingNode->m_parentIndex = currentNode.m_index;
-          m_openList.emplace(addFCost(*existingNode),
-                             newIndex); // Note: we are not removing or
-                                        // modifying the original entry of the
-                                        // node in the openlist, simply adding
-                                        // an additional entry of the same
-                                        // node with the new parent
+        if ((anchor and not existingNode->m_anchorClosed) or
+            (not anchor and not existingNode->m_inadmissableClosed)) {
+          if (gCost < existingNode->m_gCost) {
+            existingNode->m_gCost = gCost;
+            existingNode->m_parentIndex = currentNode.m_index;
+            addNodeToOpenLists(
+                *existingNode); // Note: we are not removing or
+                                // modifying the original entry of the
+                                // node in the openlist, simply adding
+                                // an additional entry of the same
+                                // node with the new parent
+          }
         }
         continue;
       }
@@ -128,12 +220,12 @@ void AStar::getSuccessors(const Node &currentNode) {
       const auto newNodeIt = m_nodeGraph.emplace(
           newIndex, Node{m_nodeGraph.size(), newState, newIndex,
                          currentNode.m_index, gCost});
-      m_openList.emplace(addFCost(newNodeIt.first->second), newIndex);
+      addNodeToOpenLists(newNodeIt.first->second);
     }
   }
 }
 
-boost::optional<Node &> AStar::getNode(const NodeIndex index) {
+boost::optional<Node &> AStar::getNode(const NodeIndex &index) {
   const auto nodeIt{m_nodeGraph.find(index)};
   if (nodeIt == m_nodeGraph.end()) {
     return boost::none;
@@ -200,6 +292,11 @@ void AStar::setHeuristicLambdaFunctions(
         return std::sqrt(std::pow(state.m_x - m_goalState->m_x, 2.0) +
                          std::pow(state.m_y - m_goalState->m_y, 2.0));
       };
+    } else if (heuristicFunction == "Angular") {
+      *heuristic = [this](const State &state) {
+        return 180 / M_PI *
+               std::abs(wrapToPi(state.m_theta - m_goalState->m_theta));
+      };
     } else if (heuristicFunction == "None") {
       *heuristic = [this](const State &state) { return 0; };
     } else {
@@ -219,7 +316,7 @@ void AStar::setHeuristicLambdaFunctions(
 }
 
 Gear AStar::getGear(const double directionOfMovement) {
-  if (std::abs(directionOfMovement) < __DBL_EPSILON__) {
+  if (std::abs(directionOfMovement) < std::numeric_limits<double>::epsilon()) {
     return Gear::STOP;
   } else if (directionOfMovement > 0) {
     return Gear::FORWARD;

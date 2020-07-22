@@ -20,12 +20,14 @@ struct Node {
   State m_state;
   boost::optional<NodeIndex> m_parentIndex;
   Cost m_gCost;
-  bool m_closed;
+  bool m_anchorClosed;
+  bool m_inadmissableClosed;
   NodeIndex m_index;
   Node(const size_t expansionOrder, const State &state, const NodeIndex index,
        const boost::optional<NodeIndex> parentIndex, const Cost gCost)
       : m_expansionOrder{expansionOrder}, m_state{state}, m_index{index},
-        m_parentIndex{parentIndex}, m_gCost{gCost}, m_closed{false} {}
+        m_parentIndex{parentIndex}, m_gCost{gCost}, m_anchorClosed{false},
+        m_inadmissableClosed{false} {}
 };
 
 using Path = std::vector<State>;
@@ -60,8 +62,9 @@ public:
 
   ~AStar();
 
-  /// @brief This function performs an A* search using the given parameters to
-  /// define the search parameters
+  /// @brief This public function performs a search from the start state to the
+  /// goal state. The search it performs is based on the parameters provided at
+  /// class initialization
   /// @param startState State from which the search is starting
   /// @param goalState State to which the search is planning
   /// @return Path from the start to goal state
@@ -84,7 +87,11 @@ private:
   Graph m_nodeGraph;
 
   /// @brief Open list for tracking which state is to be expanded next
-  OpenList m_openList;
+  OpenList m_anchorOpenList;
+
+  /// @brief Vector of open lists for tracking which state is to be expanded
+  /// next, one list per inadmissable heuristic
+  std::vector<OpenList> m_inadmissableOpenVector;
 
   /// @brief Weight on the heuristic when calculating the F cost
   double m_epsilon;
@@ -123,14 +130,23 @@ private:
   /// @brief Given a node, this function finds any legitimate successors and
   /// adds them to the node graph
   /// @param currentNode node whose successors should be gotten
-  void getSuccessors(const Node &currentNode);
+  void getSuccessors(const Node &currentNode, const Heuristic &heuristic,
+                     const bool anchor = true);
+
+  bool mhaStar(const Node &goalNode);
+
+  bool aStar(const Node &goalNode);
+
+  /// @brief Adds node to all open lists, unless it is on their closed list
+  /// @param node Node to the open lists
+  void addNodeToOpenLists(const Node &node);
 
   /// @brief The function will find and return a the node in the graph
   /// correspinding to an index
   /// @param index the index of the node wanted
-  /// @return The node associated index, or boost::none if the node is not in
-  /// the graph
-  boost::optional<Node &> getNode(const NodeIndex index);
+  /// @return The node associated index, or boost::none if the node is not
+  /// in the graph
+  boost::optional<Node &> getNode(const NodeIndex &index);
 
   /// @brief Get the path from the start state to the end index
   /// @param endIndex is the index of the node at the end of the path
@@ -151,9 +167,8 @@ private:
   /// @brief Function to safely calculate F-cost, avoiding INT rollover
   /// @param node the predicted F-cost of the node
   /// @return Calculated F-cost
-  inline Cost addFCost(const Node &node) const {
-    const Cost fCost{node.m_gCost +
-                     m_anchorHeuristic(node.m_state) * m_epsilon};
+  inline Cost addFCost(const Node &node, const Heuristic &heuristic) const {
+    const Cost fCost{node.m_gCost + heuristic(node.m_state) * m_epsilon};
     if (fCost < 0) {
       ROS_ERROR("ERROR: fCost was negative throwing");
       throw "";

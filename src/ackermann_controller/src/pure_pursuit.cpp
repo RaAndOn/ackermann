@@ -142,7 +142,7 @@ int PurePursuit::findIndexOfClosestPointOnPath() {
 
   // Initialize variables
   auto closestPointIt = m_path.begin();
-  double minDistanceToPath{__DBL_MAX__};
+  double minDistanceToPath{std::numeric_limits<double>::max()};
 
   // The closest point is the last point to be closer to the vehicle than the
   // previous point
