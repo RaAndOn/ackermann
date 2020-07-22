@@ -1,45 +1,25 @@
 #pragma once
 
-#include <boost/optional.hpp>
 #include <functional>
 #include <iostream>
 #include <queue> // std::priority_queue
-#include <unordered_map>
-#include <vector> // std::vector
+#include <unordered_set>
 
 #include <ros/ros.h>
 
 #include <ackermann_planner/motion_primitive.hpp>
+#include <ackermann_planner/search_class.hpp>
 #include <ackermann_project/planner_utils.hpp>
 
-using Cost = double;
-using NodeIndex = size_t;
-
-struct Node {
-  size_t m_expansionOrder;
-  State m_state;
-  boost::optional<NodeIndex> m_parentIndex;
-  Cost m_gCost;
-  bool m_anchorClosed;
-  bool m_inadmissableClosed;
-  NodeIndex m_index;
-  Node(const size_t expansionOrder, const State &state, const NodeIndex index,
-       const boost::optional<NodeIndex> parentIndex, const Cost gCost)
-      : m_expansionOrder{expansionOrder}, m_state{state}, m_index{index},
-        m_parentIndex{parentIndex}, m_gCost{gCost}, m_anchorClosed{false},
-        m_inadmissableClosed{false} {}
-};
-
-using Path = std::vector<State>;
 using NodeRank = std::pair<Cost, NodeIndex>; // Cost and NodeIndex
 using OpenList =
     std::priority_queue<NodeRank, std::vector<NodeRank>,
                         std::greater<NodeRank>>; // Min priority queue
-using Graph = std::unordered_map<NodeIndex, Node>;
+using ClosedList = std::unordered_set<NodeIndex>;
 using Heuristic = std::function<double(const State &state)>;
 using EdgeCost = std::function<double(const Primitive &primitive)>;
 
-class AStar {
+class AStar : public SearchClass {
 public:
   /// @brief Implementation of A* planner for an ackermann vehicle with X,Y
   /// position, steering angle of Theta.
@@ -54,11 +34,12 @@ public:
   /// mapped to a lambda variable
   /// @param edgeCostFunction Name of the edge cost function, which will be
   /// mapped to a lambda variable
+  /// @param debug Flag to indicate whether to use certain print statements
   AStar(const std::vector<Primitive> &primitives,
         const double distanceResolutionMeters,
         const double angularResolutionDegrees, const double epsilon,
         const std::string &heuristicFunction,
-        const std::string &edgeCostFunction);
+        const std::string &edgeCostFunction, const bool debug = true);
 
   ~AStar();
 
@@ -82,16 +63,15 @@ public:
   /// @return The time in seconds taken to perform latest search
   double getLatestSearchTime() const { return m_latestSearchTime; }
 
-private:
+protected:
   /// @brief Node graph containing all nodes and their relationships
   Graph m_nodeGraph;
 
   /// @brief Open list for tracking which state is to be expanded next
-  OpenList m_anchorOpenList;
+  OpenList m_openList;
 
-  /// @brief Vector of open lists for tracking which state is to be expanded
-  /// next, one list per inadmissable heuristic
-  std::vector<OpenList> m_inadmissableOpenVector;
+  /// @brief Closed list to indicate which states have already been expanded
+  ClosedList m_closedList;
 
   /// @brief Weight on the heuristic when calculating the F cost
   double m_epsilon;
@@ -100,11 +80,7 @@ private:
   int m_collisionThresh;
 
   /// @brief Lambda function representing the admissable heuristic function
-  Heuristic m_anchorHeuristic;
-
-  /// @brief Vector of lambda functions representing inadmissable heuristics for
-  /// MHA*
-  std::vector<Heuristic> m_inadmissableHeuristics;
+  Heuristic m_heuristicFunction;
 
   /// @brief Lambda function holding the chosen edge cost function
   EdgeCost m_edgeCostFunction;
@@ -130,16 +106,30 @@ private:
   /// @brief Given a node, this function finds any legitimate successors and
   /// adds them to the node graph
   /// @param currentNode node whose successors should be gotten
-  void getSuccessors(const Node &currentNode, const Heuristic &heuristic,
-                     const bool anchor = true);
+  void getSuccessors(const Node &currentNode, const Heuristic &heuristic);
 
-  bool mhaStar(const Node &goalNode);
-
+  /// @brief A* search (Primary function of the class)
+  /// @param goalNode Node to which A* is trying to find a path
   bool aStar(const Node &goalNode);
 
-  /// @brief Adds node to all open lists, unless it is on their closed list
-  /// @param node Node to the open lists
-  void addNodeToOpenLists(const Node &node);
+  /// @brief Adds node to the open list (Assumes it is not in the closed list
+  /// already)
+  /// @param node Node to add to the open lists
+  virtual void addNodeToOpenList(const Node &node) {
+    m_openList.emplace(addFCost(node, m_heuristicFunction), node.m_index);
+  }
+
+  /// @brief Looks in the closed list for a node
+  /// @param nodeIndex Index of the node which I wish to find in the closed list
+  /// @param anchor Unused here, used in derived class
+  /// @return True if the node is in the closed list, false otherwise
+  virtual bool checkClosedList(const NodeIndex &nodeIndex,
+                               const bool anchor = true) {
+    if (m_closedList.find(nodeIndex) == m_closedList.end()) {
+      return false;
+    }
+    return true;
+  }
 
   /// @brief The function will find and return a the node in the graph
   /// correspinding to an index
@@ -157,7 +147,9 @@ private:
   /// @brief Set a heuristic lambda function variable to the indicated lambda
   /// function
   /// @param heuristicVector vector of heuristic functions to use
-  void setHeuristicLambdaFunctions(std::vector<std::string> heuristicVector);
+  void setHeuristicLambdaFunctions(Heuristic *heuristicLambda,
+                                   const std::string &functionName,
+                                   const bool debug);
 
   /// @brief Set a edge cost lambda function variable to the indicated lambda
   /// function
@@ -253,4 +245,8 @@ private:
     }
     return index3;
   };
+
+private:
+  /// @brief Flag to indicate whether to use certain print statements
+  const bool m_debug;
 };

@@ -8,7 +8,9 @@
 
 #include <ackermann_planner/Goal.h>
 #include <ackermann_planner/a_star.hpp>
+#include <ackermann_planner/mha_star.hpp>
 #include <ackermann_planner/motion_primitive.hpp>
+#include <ackermann_planner/search_class.hpp>
 #include <ackermann_project/ackermann_utils.hpp>
 
 class LatticePlanner {
@@ -54,8 +56,14 @@ private:
   /// @brief Weight on the heuristic function for an A* planner
   const double m_epsilon;
 
+  /// @brief Weight on the admissable FCost for  MHA* planner
+  const double m_epsilon_mha;
+
   /// @brief Name of the heuristic function
-  const std::string m_heuristicFunctions;
+  const std::string m_heuristicFunction;
+
+  /// @brief Name of the inadmissable heuristic functions
+  const std::string m_inadmissableFunctions;
 
   /// @brief Name of the edge cost function
   const std::string m_edgeCostFunction;
@@ -73,7 +81,13 @@ private:
   const double m_angularResolutionDegrees;
 
   /// @brief Class for searching space for a path
-  AStar m_search;
+  SearchClass *m_search;
+
+  /// @brief Class for searching space for a path
+  AStar m_aStar;
+
+  /// @brief Class for searching space for a path
+  MHAStar m_mhaStar;
 
   /// @brief Name of the topic which publishes the vehicle path
   const std::string m_pathTopic;

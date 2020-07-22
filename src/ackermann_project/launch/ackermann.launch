@@ -21,17 +21,20 @@
   <arg name="search_visualization_topic" default="search_markers" />
 
   <!-- Planner Arguments -->
-  <arg name="planner_dt" default=".5" />
+  <arg name="planner_dt" default="1" />
   <arg name="planner_discretization_degrees" default="22.5" />
   <arg name="planner_steering_increments" default="1" />
   <arg name="planner_velocity" default="1.0" /> <!-- m/s -->
   <arg name="planner_epsilon" default="1.0" />
   <arg name="planner_edge_cost_function" default="Euclidean" />
   <arg name="planner_heuristic" default="Euclidean" />
+  <arg name="planner_inadmissable" default="Angular" />
+  <arg name="planner_epsilon_mha" default="1.0" />
   <arg name="planner_debug" default="false" />
+  <arg name="planner_search" default="MHA*"/>
 
   <!-- Controller Arguments -->
-  <arg name="controller_lookahead_distance" default="3.0" /> <!-- m -->
+  <arg name="controller_lookahead_distance" default="1.0" /> <!-- m -->
   <arg name="controller_velocity" default="$(arg planner_velocity)" /> <!-- m/s -->
 
 
@@ -68,7 +71,9 @@
       <param name="heuristic" type="str" value="$(arg planner_heuristic)" />
       <param name="search_visualization_topic" type="str" value="$(arg search_visualization_topic)" />
       <param name="debug" type="bool" value="$(arg planner_debug)" />
-
+      <param name="inadmissable" type="str" value="$(arg planner_inadmissable)" />
+      <param name="epsilon_mha" type="double" value="$(arg planner_epsilon_mha)" />
+      <param name="search" type="str" value="$(arg planner_search)" />
     </node>
 
     <node name="ackermann_controller_node" pkg="ackermann_controller" type="ackermann_controller_node" output=

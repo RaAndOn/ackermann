@@ -24,14 +24,25 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
       m_angularResolutionDegrees{m_motionPrimitiveCalc.getAngularResolution() *
                                  180 / M_PI},
       m_epsilon{getROSParam(m_privateNH, "epsilon", 1.0)},
-      m_heuristicFunctions{
+      m_epsilon_mha{getROSParam(m_privateNH, "epsilon", 1.0)},
+      m_heuristicFunction{
           getROSParamString(m_privateNH, "heuristic", "Euclidean")},
+      m_inadmissableFunctions{
+          getROSParamString(m_privateNH, "inadmissable", "Angular")},
       m_edgeCostFunction{
           getROSParamString(m_privateNH, "edge_cost_function", "Euclidean")},
       // Instantiate Search Method
-      m_search{m_motionPrimitivesVector,   m_distanceResolution,
-               m_angularResolutionDegrees, m_epsilon,
-               m_heuristicFunctions,       m_edgeCostFunction},
+      m_aStar{m_motionPrimitivesVector,   m_distanceResolution,
+              m_angularResolutionDegrees, m_epsilon,
+              m_heuristicFunction,        m_edgeCostFunction},
+      m_mhaStar{m_motionPrimitivesVector,
+                m_distanceResolution,
+                m_angularResolutionDegrees,
+                m_epsilon,
+                m_epsilon_mha,
+                m_heuristicFunction,
+                m_inadmissableFunctions,
+                m_edgeCostFunction},
       // Instantiate Topic Names
       m_pathTopic{getROSParamString(m_privateNH, "vehicle_path_topic", "path")},
       m_vehicleOdomTopic{
@@ -49,6 +60,19 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
       m_vehicleOdomTopic, 1, &LatticePlanner::updateStateCallback, this);
   m_planPathSrv =
       m_publicNH.advertiseService("plan_path", &LatticePlanner::planPath, this);
+
+  const std::string searchType{
+      getROSParamString(m_privateNH, "search", "MHA*")};
+  if (searchType == "MHA*") {
+    ROS_INFO("Multi-Heuristic A* selected as search type");
+    m_search = &m_mhaStar;
+  } else if (searchType == "A*") {
+    ROS_INFO("A* selected as search type");
+    m_search = &m_aStar;
+  } else {
+    ROS_ERROR("ROS Parameter 'search' set to recognizeble search type");
+    throw "";
+  }
 }
 
 LatticePlanner::~LatticePlanner() = default;
@@ -76,11 +100,11 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
   State goalState{req.x, req.y, req.thetaDegrees * M_PI / 180, Gear::STOP};
 
   // Find path to goal
-  auto path = m_search.search(startState, goalState);
+  auto path = m_search->search(startState, goalState);
   const double end = ros::Time::now().toSec();
 
-  res.planningTime = m_search.getLatestSearchTime();
-  res.nodesExpanded = m_search.getGraphSize();
+  res.planningTime = m_search->getLatestSearchTime();
+  res.nodesExpanded = m_search->getGraphSize();
 
   if (m_debug) {
     visualizeNodeExpansions();
@@ -114,7 +138,7 @@ bool LatticePlanner::planPath(ackermann_planner::Goal::Request &req,
 }
 
 void LatticePlanner::visualizeNodeExpansions() {
-  const Graph searchGraph{m_search.getGraph()};
+  const Graph searchGraph{m_search->getGraph()};
   // Initialize marker
   visualization_msgs::Marker marker;
   // Set Marker specifics
@@ -124,7 +148,7 @@ void LatticePlanner::visualizeNodeExpansions() {
   for (std::pair<NodeIndex, Node> node : searchGraph) {
     const double orderFraction{
         static_cast<double>(node.second.m_expansionOrder) /
-        static_cast<double>(m_search.getGraphSize())};
+        static_cast<double>(m_search->getGraphSize())};
     // Select marker color
     std_msgs::ColorRGBA color;
     color.a = 1.0; // Don't forget to set the alpha!

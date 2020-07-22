@@ -8,25 +8,15 @@
 AStar::AStar(const std::vector<Primitive> &primitives,
              const double distanceResolutionMeters,
              const double angularResolutionDegrees, const double epsilon,
-             const std::string &heuristicFunctions,
-             const std::string &edgeCostFunction)
+             const std::string &heuristicFunction,
+             const std::string &edgeCostFunction, const bool debug)
     : m_primitives{primitives}, m_distanceResolution{distanceResolutionMeters},
       m_angularResolution{M_PI * angularResolutionDegrees / 180},
-      m_collisionThresh{1}, m_epsilon{epsilon} {
-  ROS_INFO("Initialize search Class");
-
-  // Split heuristic function string into vector
-  std::vector<std::string> heuristicVector;
-  std::stringstream heuristicStream(heuristicFunctions);
-  while (heuristicStream.good()) {
-    std::string heuristic;
-    // get first string delimited by comma
-    getline(heuristicStream, heuristic, ',');
-    heuristicVector.push_back(heuristic);
-  }
+      m_collisionThresh{1}, m_epsilon{epsilon}, m_debug{debug} {
+  ROS_INFO_COND(m_debug, "Initialize AStar search class");
 
   // Set heuristic and edge cost functions
-  setHeuristicLambdaFunctions(heuristicVector);
+  setHeuristicLambdaFunctions(&m_heuristicFunction, heuristicFunction, m_debug);
   setEdgeCostLambdaFunction(edgeCostFunction);
 }
 
@@ -38,39 +28,32 @@ boost::optional<Path> AStar::search(const State &startState,
   const double begin = ros::Time::now().toSec();
   // Clear Data Structures
   m_nodeGraph.clear();
-  m_anchorOpenList = OpenList();
-  m_inadmissableOpenVector =
-      std::vector<OpenList>{m_inadmissableHeuristics.size()};
+  m_openList = OpenList();
+  m_closedList = ClosedList();
   // Set Variables
   m_goalState = goalState;
-  // Add start node to the graph and open list
-  m_startIndex = hashFunction(startState);
 
+  // Add start node to the graph and open list
   m_startIndex = hashFunction(startState);
   const auto startNodeIt =
       m_nodeGraph.emplace(m_startIndex, Node{m_nodeGraph.size(), startState,
                                              m_startIndex, boost::none, 0});
+  addNodeToOpenList(startNodeIt.first->second);
 
-  addNodeToOpenLists(startNodeIt.first->second);
-
+  // Add goal node to the graph
   auto goalIndex = hashFunction(m_goalState.get());
   const auto goalNodeIt = m_nodeGraph.emplace(
       goalIndex, Node{m_nodeGraph.size(), m_goalState.get(), goalIndex,
                       boost::none, std::numeric_limits<Cost>::max()});
-
-  bool foundPath{false};
   // Perform search
-  if (m_inadmissableHeuristics.empty()) {
-    ROS_INFO("AStar");
-    foundPath = aStar(goalNodeIt.first->second);
-  } else {
-    ROS_INFO("MHAStar");
-    foundPath = mhaStar(goalNodeIt.first->second);
-  }
+  ROS_INFO_COND(m_debug, "Performing A* Search");
+  const bool foundPath = aStar(goalNodeIt.first->second);
+
   // Record how long it took to perform search
   const double end = ros::Time::now().toSec();
   m_latestSearchTime = end - begin;
 
+  // Return the path
   if (foundPath) {
     return getPath(goalIndex);
   } else {
@@ -80,11 +63,15 @@ boost::optional<Path> AStar::search(const State &startState,
 
 bool AStar::aStar(const Node &goalNode) {
   // Keep expanding nodes while the open list is not empty
-  while (not m_anchorOpenList.empty()) {
+  while (not m_openList.empty()) {
     // Get the node off the top of the priority queue
-    const auto currentNode{getNode(m_anchorOpenList.top().second)};
-    const auto minKey{m_anchorOpenList.top().first};
-    m_anchorOpenList.pop();
+    const auto currentNode{getNode(m_openList.top().second)};
+    const auto minKey{m_openList.top().first};
+    m_openList.pop();
+    // Check if Node is already closed
+    if (checkClosedList(currentNode->m_index)) {
+      continue;
+    }
     // This is equivalent to the condition of goal node having been expanded
     if (goalNode.m_gCost <= minKey and
         goalNode.m_gCost < std::numeric_limits<Cost>::max()) {
@@ -93,10 +80,10 @@ bool AStar::aStar(const Node &goalNode) {
       return true;
     }
     // Expand the current node
-    getSuccessors(*currentNode, m_anchorHeuristic);
+    getSuccessors(*currentNode, m_heuristicFunction);
     // Add the current node to the closed list
     if (m_epsilon <= 1) {
-      currentNode->m_anchorClosed = true;
+      m_closedList.emplace(currentNode->m_index);
     }
   }
   ROS_INFO("PATH NOT FOUND: Entire Configuration Space Expanded");
@@ -104,72 +91,7 @@ bool AStar::aStar(const Node &goalNode) {
   return false;
 }
 
-void AStar::addNodeToOpenLists(const Node &node) {
-  if (not node.m_anchorClosed) {
-    m_anchorOpenList.emplace(addFCost(node, m_anchorHeuristic), node.m_index);
-  }
-
-  if (not node.m_inadmissableClosed) {
-    for (size_t i = 0; i < m_inadmissableHeuristics.size(); ++i) {
-      const auto fCost{addFCost(node, m_inadmissableHeuristics[i])};
-      m_inadmissableOpenVector[i].emplace(fCost, node.m_index);
-    }
-  }
-}
-
-bool AStar::mhaStar(const Node &goalNode) {
-  // Keep expanding nodes while the open list is not empty
-  while (not m_anchorOpenList.empty()) {
-    // Alternate between inadmissable heuristics
-    for (size_t i = 0; i < m_inadmissableHeuristics.size(); ++i) {
-      // Get the node off the top of the priority queue
-      const auto minKeyInadmissable{m_inadmissableOpenVector[i].top().first};
-      const auto minKeyAnchor{m_anchorOpenList.top().first};
-      if (minKeyInadmissable <= minKeyAnchor) {
-        // These conditions are equivalent to the goal node having been expanded
-        if (goalNode.m_gCost <= minKeyInadmissable) {
-          if (goalNode.m_gCost < std::numeric_limits<Cost>::max()) {
-            ROS_INFO("PATH FOUND");
-            // Return indicating a path wasfound
-            return true;
-          }
-        } else {
-          // Get the top node off of the current inadmissable open vector
-          const auto currentNode{
-              getNode(m_inadmissableOpenVector[i].top().second)};
-          m_inadmissableOpenVector[i].pop();
-          // Expand the node
-          getSuccessors(*currentNode, m_inadmissableHeuristics[i], false);
-          // Add the node to the inadmissable closed list
-          currentNode->m_inadmissableClosed = true;
-        }
-      } else {
-        // These conditions are equivalent to the goal node having been expanded
-        if (goalNode.m_gCost <= minKeyAnchor) {
-          if (goalNode.m_gCost < std::numeric_limits<Cost>::max()) {
-            ROS_INFO("PATH FOUND");
-            // Return indicating a path wasfound
-            return true;
-          }
-        } else {
-          // Get the top node off of the current admissable open vector
-          const auto currentNode{getNode(m_anchorOpenList.top().second)};
-          m_anchorOpenList.pop();
-          // Expand the node
-          getSuccessors(*currentNode, m_anchorHeuristic, true);
-          // Add the node to the admissable closed list
-          currentNode->m_anchorClosed = true;
-        }
-      }
-    }
-  }
-  ROS_INFO("PATH NOT FOUND: Entire Configuration Space Expanded");
-  // Return false, indicating no path found
-  return false;
-}
-
-void AStar::getSuccessors(const Node &currentNode, const Heuristic &heuristic,
-                          const bool anchor) {
+void AStar::getSuccessors(const Node &currentNode, const Heuristic &heuristic) {
   // Iterate over all the motion primitives to the node's successors
   State currentState{currentNode.m_state};
   for (const auto &primitive : m_primitives) {
@@ -201,12 +123,11 @@ void AStar::getSuccessors(const Node &currentNode, const Heuristic &heuristic,
       if (existingNode) {
         // Update the node if is not closed and the cost to come is better then
         // add it back to the open list
-        if ((anchor and not existingNode->m_anchorClosed) or
-            (not anchor and not existingNode->m_inadmissableClosed)) {
+        if (not checkClosedList(newIndex, &heuristic == &m_heuristicFunction)) {
           if (gCost < existingNode->m_gCost) {
             existingNode->m_gCost = gCost;
             existingNode->m_parentIndex = currentNode.m_index;
-            addNodeToOpenLists(
+            addNodeToOpenList(
                 *existingNode); // Note: we are not removing or
                                 // modifying the original entry of the
                                 // node in the openlist, simply adding
@@ -220,7 +141,7 @@ void AStar::getSuccessors(const Node &currentNode, const Heuristic &heuristic,
       const auto newNodeIt = m_nodeGraph.emplace(
           newIndex, Node{m_nodeGraph.size(), newState, newIndex,
                          currentNode.m_index, gCost});
-      addNodeToOpenLists(newNodeIt.first->second);
+      addNodeToOpenList(newNodeIt.first->second);
     }
   }
 }
@@ -271,48 +192,26 @@ void AStar::setEdgeCostLambdaFunction(const std::string &edgeCostFunction) {
   throw "";
 }
 
-void AStar::setHeuristicLambdaFunctions(
-    std::vector<std::string> heuristicVector) {
-  // The first function is set as the anchor heuristic and all other functions
-  // are added as inadmissable heuristics.
-
-  // Initialize variables
-  auto heuristic{&m_anchorHeuristic};
-  bool anchor{true};
-  while (not heuristicVector.empty()) {
-    // Get first heuristic in vector
-    auto heuristicFunction{heuristicVector.front()};
-    // Delete first heuristic from vector
-    heuristicVector.erase(heuristicVector.begin());
-    if (not anchor) {
-      heuristic = new Heuristic{};
-    }
-    if (heuristicFunction == "Euclidean") {
-      *heuristic = [this](const State &state) {
-        return std::sqrt(std::pow(state.m_x - m_goalState->m_x, 2.0) +
-                         std::pow(state.m_y - m_goalState->m_y, 2.0));
-      };
-    } else if (heuristicFunction == "Angular") {
-      *heuristic = [this](const State &state) {
-        return 180 / M_PI *
-               std::abs(wrapToPi(state.m_theta - m_goalState->m_theta));
-      };
-    } else if (heuristicFunction == "None") {
-      *heuristic = [this](const State &state) { return 0; };
-    } else {
-      ROS_ERROR("ERROR: Valid Heuristic Function Not Provided");
-      throw "";
-    }
-    // Report the heuristics to the command line
-    if (anchor) {
-      ROS_INFO("Admissable Heuristic set as %s", heuristicFunction.c_str());
-    } else {
-      m_inadmissableHeuristics.push_back(*heuristic);
-      ROS_INFO("Inadmissable Heuristic set as %s", heuristicFunction.c_str());
-    }
-    // Ensure all heuristics after the first are inadmissable
-    anchor = false;
+void AStar::setHeuristicLambdaFunctions(Heuristic *heuristicLambda,
+                                        const std::string &functionName,
+                                        const bool debug) {
+  if (functionName == "Euclidean") {
+    *heuristicLambda = [this](const State &state) {
+      return std::sqrt(std::pow(state.m_x - m_goalState->m_x, 2.0) +
+                       std::pow(state.m_y - m_goalState->m_y, 2.0));
+    };
+  } else if (functionName == "Angular") {
+    *heuristicLambda = [this](const State &state) {
+      return 180 / M_PI *
+             std::abs(wrapToPi(state.m_theta - m_goalState->m_theta));
+    };
+  } else if (functionName == "None") {
+    *heuristicLambda = [this](const State &state) { return 0; };
+  } else {
+    ROS_ERROR("ERROR: Valid Heuristic Function Not Provided");
+    throw "";
   }
+  ROS_INFO_COND(debug, "Heuristic Function set to : %s", functionName.c_str());
 }
 
 Gear AStar::getGear(const double directionOfMovement) {
