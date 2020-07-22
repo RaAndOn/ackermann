@@ -221,10 +221,10 @@ Gear AStar::getGear(const double directionOfMovement) {
   }
   if (directionOfMovement > 0) {
     return Gear::FORWARD;
-  } if (directionOfMovement < 0) {
-    return Gear::REVERSE;
-  } else {
-    ROS_ERROR("ERROR: Could not determine vehicle gear");
-    throw "";
   }
+  if (directionOfMovement < 0) {
+    return Gear::REVERSE;
+  }
+  ROS_ERROR("ERROR: Could not determine vehicle gear");
+  throw "";
 }
