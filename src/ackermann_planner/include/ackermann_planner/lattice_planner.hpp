@@ -83,12 +83,6 @@ private:
   /// @brief Class for searching space for a path
   SearchClass *m_search;
 
-  /// @brief Class for searching space for a path
-  AStar m_aStar;
-
-  /// @brief Class for searching space for a path
-  MHAStar m_mhaStar;
-
   /// @brief Name of the topic which publishes the vehicle path
   const std::string m_pathTopic;
 

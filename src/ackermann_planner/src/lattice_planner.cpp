@@ -31,18 +31,6 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
           getROSParamString(m_privateNH, "inadmissable", "Angular")},
       m_edgeCostFunction{
           getROSParamString(m_privateNH, "edge_cost_function", "Euclidean")},
-      // Instantiate Search Method
-      m_aStar{m_motionPrimitivesVector,   m_distanceResolution,
-              m_angularResolutionDegrees, m_epsilon,
-              m_heuristicFunction,        m_edgeCostFunction},
-      m_mhaStar{m_motionPrimitivesVector,
-                m_distanceResolution,
-                m_angularResolutionDegrees,
-                m_epsilon,
-                m_epsilon_mha,
-                m_heuristicFunction,
-                m_inadmissableFunctions,
-                m_edgeCostFunction},
       // Instantiate Topic Names
       m_pathTopic{getROSParamString(m_privateNH, "vehicle_path_topic", "path")},
       m_vehicleOdomTopic{
@@ -65,17 +53,26 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
       getROSParamString(m_privateNH, "search", "MHA*")};
   if (searchType == "MHA*") {
     ROS_INFO("Multi-Heuristic A* selected as search type");
-    m_search = &m_mhaStar;
+    m_search = new MHAStar{m_motionPrimitivesVector,
+                           m_distanceResolution,
+                           m_angularResolutionDegrees,
+                           m_epsilon,
+                           m_epsilon_mha,
+                           m_heuristicFunction,
+                           m_inadmissableFunctions,
+                           m_edgeCostFunction};
   } else if (searchType == "A*") {
     ROS_INFO("A* selected as search type");
-    m_search = &m_aStar;
+    m_search = new AStar{m_motionPrimitivesVector,   m_distanceResolution,
+                         m_angularResolutionDegrees, m_epsilon,
+                         m_heuristicFunction,        m_edgeCostFunction};
   } else {
     ROS_ERROR("ROS Parameter 'search' set to recognizeble search type");
     throw "";
   }
 }
 
-LatticePlanner::~LatticePlanner() = default;
+LatticePlanner::~LatticePlanner() { delete m_search; }
 
 void LatticePlanner::updateStateCallback(const nav_msgs::Odometry &odom) {
   std::lock_guard<std::mutex> plannerLock(m_plannerMutex);

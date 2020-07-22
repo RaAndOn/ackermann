@@ -36,7 +36,12 @@ MHAStar::MHAStar(const std::vector<Primitive> &primitives,
   setEdgeCostLambdaFunction(edgeCostFunction);
 }
 
-MHAStar::~MHAStar() = default;
+MHAStar::~MHAStar() {
+  // Clean up inadmissable heuristic pointers
+  for (auto &heuristic : m_inadmissableHeuristics) {
+    delete &heuristic;
+  }
+}
 
 boost::optional<Path> MHAStar::search(const State &startState,
                                       const State &goalState) {
