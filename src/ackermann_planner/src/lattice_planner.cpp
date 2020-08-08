@@ -24,7 +24,7 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
       m_angularResolutionDegrees{m_motionPrimitiveCalc.getAngularResolution() *
                                  180 / M_PI},
       m_epsilon{getROSParam(m_privateNH, "epsilon", 1.0)},
-      m_epsilon_mha{getROSParam(m_privateNH, "epsilon", 1.0)},
+      m_epsilon_mha{getROSParam(m_privateNH, "epsilon_mha", 1.0)},
       m_heuristicFunction{
           getROSParamString(m_privateNH, "heuristic", "Euclidean")},
       m_inadmissableFunctions{
@@ -56,6 +56,7 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
     m_search = new MHAStar{m_motionPrimitivesVector,
                            m_distanceResolution,
                            m_angularResolutionDegrees,
+                           m_motionPrimitiveCalc.getTurningRadius(),
                            m_epsilon,
                            m_epsilon_mha,
                            m_heuristicFunction,
@@ -63,9 +64,13 @@ LatticePlanner::LatticePlanner(ros::NodeHandle &privateNH,
                            m_edgeCostFunction};
   } else if (searchType == "A*") {
     ROS_INFO("A* selected as search type");
-    m_search = new AStar{m_motionPrimitivesVector,   m_distanceResolution,
-                         m_angularResolutionDegrees, m_epsilon,
-                         m_heuristicFunction,        m_edgeCostFunction};
+    m_search = new AStar{m_motionPrimitivesVector,
+                         m_distanceResolution,
+                         m_angularResolutionDegrees,
+                         m_motionPrimitiveCalc.getTurningRadius(),
+                         m_epsilon,
+                         m_heuristicFunction,
+                         m_edgeCostFunction};
   } else {
     ROS_ERROR("ROS Parameter 'search' set to recognizeble search type");
     throw "";

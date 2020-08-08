@@ -7,12 +7,18 @@
 
 MHAStar::MHAStar(const std::vector<Primitive> &primitives,
                  const double distanceResolutionMeters,
-                 const double angularResolutionDegrees, const double epsilon,
+                 const double angularResolutionDegrees,
+                 const double turningRadius, const double epsilon,
                  const double weight, const std::string &admissableFunction,
                  const std::string &inadmissableFunctions,
                  const std::string &edgeCostFunction, const bool debug)
-    : AStar{primitives, distanceResolutionMeters, angularResolutionDegrees,
-            epsilon,    admissableFunction,       edgeCostFunction,
+    : AStar{primitives,
+            distanceResolutionMeters,
+            angularResolutionDegrees,
+            turningRadius,
+            epsilon,
+            admissableFunction,
+            edgeCostFunction,
             false},
       m_weight{weight}, m_debug{debug} {
   ROS_INFO_COND(m_debug, "Initializing MHAStar search class");

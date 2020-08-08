@@ -29,6 +29,7 @@ public:
   /// and indexing states
   /// @param angularResolutionDegrees angular resolution used for discretizing
   /// and indexing states
+  /// @param turningRadius
   /// @param epsilon Amount to weight the heuristic
   /// @param heuristicFunction Name of the heuristic function, which will be
   /// mapped to a lambda variable
@@ -37,8 +38,8 @@ public:
   /// @param debug Flag to indicate whether to use certain print statements
   AStar(std::vector<Primitive> primitives,
         const double distanceResolutionMeters,
-        const double angularResolutionDegrees, const double epsilon,
-        const std::string &heuristicFunction,
+        const double angularResolutionDegrees, const double turningRadius,
+        const double epsilon, const std::string &heuristicFunction,
         const std::string &edgeCostFunction, const bool debug = true);
 
   ~AStar();
@@ -249,4 +250,6 @@ protected:
 private:
   /// @brief Flag to indicate whether to use certain print statements
   const bool m_debug;
+
+  const double m_angularCostScaling;
 };

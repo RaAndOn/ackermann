@@ -35,6 +35,8 @@ public:
   /// @return The resolution in radians to be used in a planner.
   double getAngularResolution() const { return m_angularResolution; }
 
+  double getTurningRadius() const { return m_turningRadius; }
+
   /// @brief  This is a simple getter function
   /// @return The motion primitives created by class
   std::vector<Primitive> getMotionPrimitives() const {
@@ -47,5 +49,6 @@ private:
   double m_distanceResolution;
   double m_wheelBase;
   double m_arcLength;
+  double m_turningRadius;
   std::vector<Primitive> m_primitiveVector;
 };

@@ -8,13 +8,14 @@
 
 AStar::AStar(std::vector<Primitive> primitives,
              const double distanceResolutionMeters,
-             const double angularResolutionDegrees, const double epsilon,
-             const std::string &heuristicFunction,
+             const double angularResolutionDegrees, const double turningRadius,
+             const double epsilon, const std::string &heuristicFunction,
              const std::string &edgeCostFunction, const bool debug)
     : m_primitives{std::move(primitives)},
       m_distanceResolution{distanceResolutionMeters},
       m_angularResolution{M_PI * angularResolutionDegrees / 180},
-      m_collisionThresh{1}, m_epsilon{epsilon}, m_debug{debug} {
+      m_collisionThresh{1}, m_epsilon{epsilon}, m_debug{debug},
+      m_angularCostScaling{std::pow(2 * turningRadius, 2.0)} {
   ROS_INFO_COND(m_debug, "Initialize AStar search class");
 
   // Set heuristic and edge cost functions
@@ -189,6 +190,23 @@ void AStar::setEdgeCostLambdaFunction(const std::string &edgeCostFunction) {
     };
     return;
   }
+  if (edgeCostFunction == "Complex") {
+    m_edgeCostFunction = [this](const Primitive &primitive) {
+      double cost{2 * m_distanceResolution};
+      if (getGear(primitive.m_deltaX) == Gear::STOP) {
+        return 5.0 * cost;
+      }
+      if (getGear(primitive.m_deltaX) == Gear::REVERSE) {
+        cost *= 3.0;
+      }
+      if (std::abs(primitive.m_deltaY) >
+          std::numeric_limits<double>::epsilon()) {
+        cost *= 1.1;
+      }
+      return cost;
+    };
+    return;
+  }
   ROS_ERROR("ERROR: Valid Edge Cost Function Not Provided");
   throw "";
 }
@@ -203,8 +221,19 @@ void AStar::setHeuristicLambdaFunctions(Heuristic *heuristicLambda,
     };
   } else if (functionName == "Angular") {
     *heuristicLambda = [this](const State &state) {
-      return 180 / M_PI *
+      return std::sqrt(m_angularCostScaling) *
              std::abs(wrapToPi(state.m_theta - m_goalState->m_theta));
+    };
+  } else if (functionName == "Complex") {
+    *heuristicLambda = [this](const State &state) {
+      const double euclidean{
+          std::sqrt(std::pow(state.m_x - m_goalState->m_x, 2.0) +
+                    std::pow(state.m_y - m_goalState->m_y, 2.0))};
+      const double angularError{
+          std::abs(wrapToPi(state.m_theta - m_goalState->m_theta)) / M_PI};
+      const double cost{euclidean +
+                        m_angularCostScaling * angularError / euclidean};
+      return cost;
     };
   } else if (functionName == "None") {
     *heuristicLambda = [this](const State &state) { return 0; };

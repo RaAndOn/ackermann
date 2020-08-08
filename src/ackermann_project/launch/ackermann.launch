@@ -25,11 +25,11 @@
   <arg name="planner_discretization_degrees" default="22.5" />
   <arg name="planner_steering_increments" default="1" />
   <arg name="planner_velocity" default="1.0" /> <!-- m/s -->
-  <arg name="planner_epsilon" default="1.0" />
-  <arg name="planner_edge_cost_function" default="Euclidean" />
+  <arg name="planner_epsilon" default="2.0" />
+  <arg name="planner_edge_cost_function" default="Complex" />
   <arg name="planner_heuristic" default="Euclidean" />
-  <arg name="planner_inadmissable" default="Angular" />
-  <arg name="planner_epsilon_mha" default="1.0" />
+  <arg name="planner_inadmissable" default="Complex" />
+  <arg name="planner_epsilon_mha" default="3.0" />
   <arg name="planner_debug" default="false" />
   <arg name="planner_search" default="MHA*"/>
 

@@ -28,6 +28,7 @@ MotionPrimitive::MotionPrimitive(const double wheelBase, const double velocity,
       /// Set angular resolution for planner as a single delta theta
       m_angularResolution = m_primitiveVector.back().m_deltaTheta -
                             std::numeric_limits<double>::epsilon();
+      m_turningRadius = m_wheelBase / std::tan(steerAngle);
     }
     calculateMotionPrimitive(-steerAngle, true);
     calculateMotionPrimitive(steerAngle, false);

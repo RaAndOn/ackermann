@@ -12,6 +12,7 @@ public:
   /// and indexing states
   /// @param angularResolutionDegrees angular resolution used for discretizing
   /// and indexing states
+  /// @param turningRadius
   /// @param epsilon Amount to weight the heuristic
   /// @param weight Amount to weight the admissable FCost
   /// @param admissableFunction String indicating which admissible heuristic to
@@ -23,8 +24,9 @@ public:
   /// @param debug Flag to indicate whether to use certain print statements
   MHAStar(const std::vector<Primitive> &primitives,
           const double distanceResolutionMeters,
-          const double angularResolutionDegrees, const double epsilon,
-          const double weight, const std::string &admissableFunction,
+          const double angularResolutionDegrees, const double turningRadius,
+          const double epsilon, const double weight,
+          const std::string &admissableFunction,
           const std::string &inadmissableFunctions,
           const std::string &edgeCostFunction, const bool debug = true);
 
