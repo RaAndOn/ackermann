@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <mutex>
 #include <ros/ros.h>
 
@@ -81,7 +82,7 @@ private:
   const double m_angularResolutionDegrees;
 
   /// @brief Class for searching space for a path
-  SearchClass *m_search;
+  std::unique_ptr<SearchClass> m_search;
 
   /// @brief Name of the topic which publishes the vehicle path
   const std::string m_pathTopic;
