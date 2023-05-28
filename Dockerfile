@@ -27,7 +27,8 @@ RUN sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb
     apt update && apt install -y gazebo11 ros-noetic-gazebo-ros-pkgs ros-noetic-gazebo-ros-control
 
 # Install ROS Packages
-RUN apt install -y ros-noetic-tf2-geometry-msgs
+RUN apt install -y ros-noetic-tf2-geometry-msgs \
+                   ros-noetic-xacro
 
 WORKDIR $HOME/
 
