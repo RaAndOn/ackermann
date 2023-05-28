@@ -14,7 +14,7 @@ This file also provides and example of how to load a model with a gazebo plugin,
 
 ## Gazebo.Launch
 
-This launch file launches Gazebo and loads `ackermann.urdf.xacro` into it. 
+This launch file launches Gazebo and loads `ackermann.urdf.xacro` into it.
 
 The launch file also launches the robot state publisher, which is important for interfacing between ROS and Gazebo
 
@@ -23,3 +23,22 @@ The launch file also launches the robot state publisher, which is important for 
 ### RVIZ Note
 
 Without use of some sort of odometry or localization package, robot_state_publisher will only provide the changes links and joints of the model relative to each other. There are ways of getting the ground truth of the robot, for example the `p3d_base_controller` as shown in `ackermann.urdf.xacro` however I haven't made a node to convert the odometry message output to a TF message format, so it will not be visualized in RVIZ yet.
+
+## Running the code
+Build and start the docker container
+`$ ./docker_build.bash`
+`$ docker exec -it ackermann-ros-1 bash`
+
+Build the ROS project
+`# source /opt/ros/melodic/setup.bash`
+`# catkin build`
+`# source devel/setup.bash`
+
+Launch the code
+`# roslaunch ackermann_project ackermann.launch`
+You can command the vehicle to a given pose using the command:
+```
+# rosservice call /plan_path "x: 10.0
+y: 0.0
+thetaDegrees: 0.0"
+```
