@@ -1,0 +1,11 @@
+version: "3.9"  # optional since v1.27.0
+services:
+  ros:
+    build: .
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ~/.ssh/:/root/.ssh
+      - ./:/root/
+    environment:
+      - DISPLAY
+    network_mode: host
