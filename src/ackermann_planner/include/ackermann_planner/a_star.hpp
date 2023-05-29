@@ -53,7 +53,7 @@ public:
   /// mapped to a lambda variable
   /// @param edgeCostFunction Name of the edge cost function, which will be
   /// mapped to a lambda variable
-  AStar(const std::vector<Primitive> &primitives,
+  AStar(std::vector<Primitive> primitives,
         const double distanceResolutionMeters,
         const double angularResolutionDegrees, const double epsilon,
         const std::string &heuristicFunction,

@@ -3,7 +3,7 @@
 #include <gazebo/common/common.hh>
 #include <gazebo/gazebo.hh>
 #include <gazebo/physics/physics.hh>
-#include <math.h>
+#include <cmath>
 #include <ros/ros.h>
 
 #include <nav_msgs/Odometry.h>
@@ -11,11 +11,9 @@
 
 #include "AckermannControlPlugin.hpp"
 
-using namespace gazebo;
+namespace gazebo {
 
 AckermannControlPlugin::AckermannControlPlugin() : ModelPlugin() {}
-
-AckermannControlPlugin::~AckermannControlPlugin(){};
 
 void AckermannControlPlugin::Load(physics::ModelPtr parent,
                                   sdf::ElementPtr sdf) {
@@ -122,7 +120,7 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
   const double wheelSteeringAngleDGain{
       sdf->Get<double>("wheel_steering_angle_d_gain")};
   // Max steering force magnitude
-  // TODO: Calculate
+  // TODO(unknown): Calculate
   double maxSteeringForceMagnitude{5000.0};
   // Set front right left steering angle PID gains
   m_flWheelSteerAnglePID.SetPGain(wheelSteeringAnglePGain);
@@ -148,8 +146,8 @@ void AckermannControlPlugin::Load(physics::ModelPtr parent,
   const double wheelVelocityDGain{
       sdf->Get<double>("wheel_angular_velocity_d_gain")};
   // Calculate max wheel speed
-  // TODO: Calculate
-  double maxSpeed = sdf->Get<double>("max_speed");
+  // TODO(unknown): Calculate
+  auto maxSpeed = sdf->Get<double>("max_speed");
   m_maxWheelSpeed = maxSpeed / (2 * M_PI * wheelRadius) * 10;
 
   // Set wheel velocity PID gains
@@ -198,12 +196,12 @@ void AckermannControlPlugin::OnUpdate() {
   // Get current world pose
   const auto worldPose{m_baseLink->WorldPose()};
   // Set current position in ground truth message
-  const auto worldPos{worldPose.Pos()};
+  const auto& worldPos{worldPose.Pos()};
   groundTruthOdom.pose.pose.position.x = worldPos.X();
   groundTruthOdom.pose.pose.position.y = worldPos.Y();
   groundTruthOdom.pose.pose.position.z = worldPos.Z();
   // Set current orientation in ground truth message
-  const auto worldRot{worldPose.Rot()};
+  const auto& worldRot{worldPose.Rot()};
   groundTruthOdom.pose.pose.orientation.x = worldRot.X();
   groundTruthOdom.pose.pose.orientation.y = worldRot.Y();
   groundTruthOdom.pose.pose.orientation.z = worldRot.Z();
@@ -218,7 +216,7 @@ void AckermannControlPlugin::OnUpdate() {
 
   // Get the new wheel force command based on the linear velocity error and
   // the PID
-  // TODO: Do I want to update the PID even if velocity error is less than eps?
+  // TODO(unknown): Do I want to update the PID even if velocity error is less than eps?
   double wheelForceCmd = m_wheelAngularVelocityPID.Update(velocityError, dt);
 
   // Check that velocity error is large enough to apply a force
@@ -226,13 +224,13 @@ void AckermannControlPlugin::OnUpdate() {
   if (std::abs(velocityError) > 0.005) {
     // Send the new force to both wheels
     // "0" is the index zero-indexed value of the roll position
-    // TODO: Figure out what "0" means
+    // TODO(unknown): Figure out what "0" means
     m_flWheelVelocityJoint->SetForce(0, wheelForceCmd);
     m_frWheelVelocityJoint->SetForce(0, wheelForceCmd);
   }
 
   // Get current steer angles of both wheels
-  // TODO: Figure out what "0" means, I've tried "1" and "2" as well, no
+  // TODO(unknown): Figure out what "0" means, I've tried "1" and "2" as well, no
   // difference
   double flWheelAngle = m_flWheelSteeringJoint->Position(0);
   double frWheelAngle = m_frWheelSteeringJoint->Position(0);
@@ -242,20 +240,20 @@ void AckermannControlPlugin::OnUpdate() {
   const double frError = frWheelAngle - m_desiredRightWheelAngle;
 
   // Calculate the new steering angle force commands
-  // TODO: Do I want to update the PID even if velocity error is less than eps?
+  // TODO(unknown): Do I want to update the PID even if velocity error is less than eps?
   double flWheelForceCmd = m_flWheelSteerAnglePID.Update(flError, dt);
   double frWheelForceCmd = m_frWheelSteerAnglePID.Update(frError, dt);
 
   if (std::abs(flError) > DBL_EPSILON) {
     // Apply the new force commands
-    // TODO: Figure out what "0" means, I've tried "1" and "2" as well, no
+    // TODO(unknown): Figure out what "0" means, I've tried "1" and "2" as well, no
     // difference
     m_flWheelSteeringJoint->SetForce(0, flWheelForceCmd);
   }
 
   if (std::abs(frError) > DBL_EPSILON) {
     // Apply the new force commands
-    // TODO: Figure out what "0" means, I've tried "1" and "2" as well, no
+    // TODO(unknown): Figure out what "0" means, I've tried "1" and "2" as well, no
     // difference
     m_frWheelSteeringJoint->SetForce(0, frWheelForceCmd);
   }
@@ -340,12 +338,16 @@ void AckermannControlPlugin::controlCallback(
 }
 
 double AckermannControlPlugin::sign(const double num) const {
-  if (num < 0)
+  if (num < 0) {
     return -1.0;
-  if (num > 0)
+  }
+  if (num > 0) {
     return 1.0;
+  }
   return 0.0;
 }
 
 // Register this plugin with the simulator
 GZ_REGISTER_MODEL_PLUGIN(AckermannControlPlugin)
+
+} // namespace gazebo

@@ -10,8 +10,6 @@
 
 #include <ackermann_msgs/AckermannSteering.h>
 
-// using namespace gazebo;
-
 namespace gazebo {
 // Forward declaration
 
@@ -20,9 +18,6 @@ class AckermannControlPlugin : public ModelPlugin {
   /// @brief Constructor.
 public:
   AckermannControlPlugin();
-
-  /// @brief Destructor.
-  virtual ~AckermannControlPlugin();
 
   // virtual void Reset();
 
