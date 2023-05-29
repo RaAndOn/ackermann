@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.10.2)
 project(gazebo_push_plugin)
 
 ## Compile as C++17
-add_compile_options(-std=c++17)
+add_compile_options(-std=c++17 -Wpedantic)
 
 # Load catkin and all dependencies required for this package
 find_package(catkin REQUIRED COMPONENTS
