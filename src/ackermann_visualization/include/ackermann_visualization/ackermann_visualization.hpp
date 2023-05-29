@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ACKERMANN_PLANNER_ACKERMANN_VISUALIZATION_HPP
+#define ACKERMANN_PLANNER_ACKERMANN_VISUALIZATION_HPP
 
 #include <mutex>
 #include <ros/ros.h>
@@ -44,3 +45,5 @@ private:
   /// @param path Path of the vehicle
   void visualizeCallback(const ackermann_msgs::AckermannPath &path);
 };
+
+#endif // ACKERMANN_PLANNER_ACKERMANN_VISUALIZATION_HPP

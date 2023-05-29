@@ -5,7 +5,7 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ~/.ssh/:/root/.ssh
-      - ./:/root/
+      - ./:/root/ackermann
     environment:
       - DISPLAY
     network_mode: host

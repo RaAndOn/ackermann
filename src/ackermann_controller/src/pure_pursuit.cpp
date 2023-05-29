@@ -28,8 +28,6 @@ PurePursuit::PurePursuit(ros::NodeHandle &privateNH, ros::NodeHandle &publicNH)
       m_publicNH.advertise<ackermann_msgs::AckermannPath>(m_pathTopic, 1);
 }
 
-PurePursuit::~PurePursuit() = default;
-
 void PurePursuit::controlCallback(const nav_msgs::Odometry &odom) {
   // Update vehicle state
   std::lock_guard<std::mutex> controllerLock(m_controllerMutex);
@@ -43,7 +41,7 @@ void PurePursuit::controlCallback(const nav_msgs::Odometry &odom) {
 
 void PurePursuit::purePursuit() {
   // Find the closest point on the path
-  int closestPointIndex = PurePursuit::findIndexOfClosestPointOnPath();
+  const auto closestPointIndex = PurePursuit::findIndexOfClosestPointOnPath();
   // Remove points on the path which have been passed
   m_path.erase(m_path.begin(), m_path.begin() + closestPointIndex);
 
@@ -103,7 +101,7 @@ void PurePursuit::purePursuit() {
   while (notDone) {
     try {
       // Get the latest transform, as indicated by ros::Time(0)
-      // TODO: Decide if latest transform is best. Waiting for a transform was
+      // TODO(unknown): Decide if latest transform is best. Waiting for a transform was
       // proving too slow
       transform = m_tfBuffer.lookupTransform("base_link", "ground_truth",
                                              ros::Time(0), ros::Duration(0.0));
@@ -136,12 +134,11 @@ void PurePursuit::pathCallback(const ackermann_msgs::AckermannPath &path) {
 
 int PurePursuit::findIndexOfClosestPointOnPath() {
   // Initialize vehicle pose variables
-  double vehicleX{m_vehicleState.pose.pose.position.x};
-  double vehicleY{m_vehicleState.pose.pose.position.y};
-  double vehicleTheta{tf2::getYaw(m_vehicleState.pose.pose.orientation)};
+  const auto vehicleX{m_vehicleState.pose.pose.position.x};
+  const auto vehicleY{m_vehicleState.pose.pose.position.y};
 
   // Initialize variables
-  auto closestPointIt = m_path.begin();
+  auto closestPointIt{m_path.begin()};
   double minDistanceToPath{__DBL_MAX__};
 
   // The closest point is the last point to be closer to the vehicle than the

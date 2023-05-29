@@ -3,13 +3,14 @@
 #include <iterator>
 
 #include <ackermann_planner/a_star.hpp>
+#include <utility>
 
-AStar::AStar(const std::vector<Primitive> &primitives,
+AStar::AStar(std::vector<Primitive> primitives,
              const double distanceResolutionMeters,
              const double angularResolutionDegrees, const double epsilon,
              const std::string &heuristicFunction,
              const std::string &edgeCostFunction)
-    : m_primitives{primitives}, m_distanceResolution{distanceResolutionMeters},
+    : m_primitives{std::move(primitives)}, m_distanceResolution{distanceResolutionMeters},
       m_angularResolution{M_PI * angularResolutionDegrees / 180},
       m_collisionThresh{1} {
   ROS_INFO("Set AStar as search algorithm");
@@ -187,12 +188,11 @@ void AStar::setHeuristicFunction(const std::string &heuristicFunction) {
 Gear AStar::getGear(const double directionOfMovement) {
   if (std::abs(directionOfMovement) < __DBL_EPSILON__) {
     return Gear::STOP;
-  } else if (directionOfMovement > 0) {
+  } if (directionOfMovement > 0) {
     return Gear::FORWARD;
-  } else if (directionOfMovement < 0) {
+  } if (directionOfMovement < 0) {
     return Gear::REVERSE;
-  } else {
-    ROS_ERROR("ERROR: Could not determine vehicle gear");
-    throw "";
   }
+  ROS_ERROR("ERROR: Could not determine vehicle gear");
+  throw "";
 }

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ACKERMANN_GAZEBO_CONTROL_ACKERMANN_CONTROL_PLUGIN_HPP
+#define ACKERMANN_GAZEBO_CONTROL_ACKERMANN_CONTROL_PLUGIN_HPP
 
 #include <geometry_msgs/TwistStamped.h>
 #include <ignition/math/Vector3.hh>
@@ -9,8 +10,6 @@
 
 #include <ackermann_msgs/AckermannSteering.h>
 
-// using namespace gazebo;
-
 namespace gazebo {
 // Forward declaration
 
@@ -19,9 +18,6 @@ class AckermannControlPlugin : public ModelPlugin {
   /// @brief Constructor.
 public:
   AckermannControlPlugin();
-
-  /// @brief Destructor.
-  virtual ~AckermannControlPlugin();
 
   // virtual void Reset();
 
@@ -137,3 +133,5 @@ private:
   double sign(const double num) const;
 };
 } // namespace gazebo
+
+#endif // ACKERMANN_GAZEBO_CONTROL_ACKERMANN_CONTROL_PLUGIN_HPP

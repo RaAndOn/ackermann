@@ -3,10 +3,3 @@ devel/
 logs/
 .catkin_tools/
 .vscode/
-.cache
-.config
-.gazebo
-.ros
-.rviz
-.sdformat
-.bash_history

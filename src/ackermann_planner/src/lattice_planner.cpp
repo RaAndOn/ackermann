@@ -141,10 +141,10 @@ void LatticePlanner::visualizeNodeExpansions() {
     tf2::convert(quat, orientation);
     // Create marker to represent pose and gear
     ackermannMarker(marker, node.second.m_expansionOrder, position, orientation,
-                    color, (Gear)node.second.m_state.m_gear);
+                    color, node.second.m_state.m_gear);
 
     // Add marker to marker array
-    markerArray.markers.push_back(marker);
+    markerArray.markers.emplace_back(marker);
   }
   m_debugMarkerPub.publish(markerArray);
 }

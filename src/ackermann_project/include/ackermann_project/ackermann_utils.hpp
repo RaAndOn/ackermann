@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ACKERMANN_PLANNER_ACKERMANN_UTILS_HPP
+#define ACKERMANN_PLANNER_ACKERMANN_UTILS_HPP
 
 #include <ros/ros.h>
 
@@ -30,3 +31,5 @@ T getROSParam(const ros::NodeHandle &nodeHandle, const std::string &paramName,
   nodeHandle.param<T>(paramName, paramValue, defaultValue);
   return paramValue;
 }
+
+#endif // ACKERMANN_PLANNER_ACKERMANN_UTILS_HPP

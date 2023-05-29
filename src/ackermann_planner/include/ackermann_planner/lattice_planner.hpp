@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ACKERMANN_PLANNER_LATTICE_PLANNER_HPP
+#define ACKERMANN_PLANNER_LATTICE_PLANNER_HPP
 
 #include <mutex>
 #include <ros/ros.h>
@@ -106,3 +107,5 @@ private:
   /// publishes them to RVIZ
   void visualizeNodeExpansions();
 };
+
+#endif // ACKERMANN_PLANNER_LATTICE_PLANNER_HPP

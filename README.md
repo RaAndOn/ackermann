@@ -42,3 +42,12 @@ You can command the vehicle to a given pose using the command:
 y: 0.0
 thetaDegrees: 0.0"
 ```
+
+## Static Analysis
+
+`$ catkin build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=1  --`
+
+This will create a `compile_commands.json` in the `{project}/build/{package}/` folder for each of the packages of the project.
+Now you can individually run clang tidy on each package from its `{project}/build/{package}/` folder
+
+`$ run-clang-tidy-6.0.py -checks='-*,performance-*,modernize-*,readability-*,portability-*,google-*' -fix`

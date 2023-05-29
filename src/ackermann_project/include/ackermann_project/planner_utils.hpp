@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ACKERMANN_PLANNER_PLANNER_UTILS_HPP
+#define ACKERMANN_PLANNER_PLANNER_UTILS_HPP
 
 #include <ackermann_project/ackermann_utils.hpp>
 
@@ -12,3 +13,5 @@ struct State {
   State(const double x, const double y, const double theta, const Gear &gear)
       : m_x{x}, m_y{y}, m_theta{wrapToPi(theta)}, m_gear{gear} {}
 };
+
+#endif // ACKERMANN_PLANNER_PLANNER_UTILS_HPP

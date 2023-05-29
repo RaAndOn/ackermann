@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ACKERMANN_PLANNER_VISUALIZATION_UTILS_HPP
+#define ACKERMANN_PLANNER_VISUALIZATION_UTILS_HPP
 
 #include <visualization_msgs/MarkerArray.h>
 
@@ -15,3 +16,5 @@ void ackermannMarker(visualization_msgs::Marker &marker, const int id,
                      const geometry_msgs::Point &position,
                      const geometry_msgs::Quaternion &orientation,
                      const std_msgs::ColorRGBA &color, const Gear &gear);
+
+#endif // ACKERMANN_PLANNER_VISUALIZATION_UTILS_HPP

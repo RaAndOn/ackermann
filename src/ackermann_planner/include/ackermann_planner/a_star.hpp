@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ACKERMANN_PLANNER_A_STAR_HPP
+#define ACKERMANN_PLANNER_A_STAR_HPP
 
 #include <boost/optional.hpp>
 #include <functional>
@@ -52,7 +53,7 @@ public:
   /// mapped to a lambda variable
   /// @param edgeCostFunction Name of the edge cost function, which will be
   /// mapped to a lambda variable
-  AStar(const std::vector<Primitive> &primitives,
+  AStar(std::vector<Primitive> primitives,
         const double distanceResolutionMeters,
         const double angularResolutionDegrees, const double epsilon,
         const std::string &heuristicFunction,
@@ -89,8 +90,8 @@ private:
   /// @brief Weight on the heuristic when calculating the F cost
   double m_epsilon;
 
-  /// @brief UNUSED
-  int m_collisionThresh;
+  /// @brief Used for occupancy grid (NOT IMPLEMENTED)
+  int m_collisionThresh{};
 
   /// @brief Lambda function holding the chosen heuristic function
   Heuristic m_heuristicFunction;
@@ -102,7 +103,7 @@ private:
   boost::optional<State> m_goalState;
 
   /// @brief Index of the state which planning is starting from
-  NodeIndex m_startIndex;
+  NodeIndex m_startIndex{};
 
   /// @brief Linear resolution for discretizing state into integers (meters)
   double m_distanceResolution;
@@ -114,7 +115,7 @@ private:
   const std::vector<Primitive> m_primitives;
 
   /// @brief The amount of time taken to perform the latest search
-  double m_latestSearchTime;
+  double m_latestSearchTime{};
 
   /// @brief Given a node, this function finds any legitimate successors and
   /// adds them to the node graph
@@ -235,3 +236,5 @@ private:
     return index3;
   };
 };
+
+#endif // ACKERMANN_PLANNER_A_STAR_HPP

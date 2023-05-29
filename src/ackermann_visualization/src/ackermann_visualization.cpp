@@ -46,5 +46,5 @@ void AckermannVisualization::addMarkerToArray(
   marker.header.stamp = ros::Time();
 
   // Add marker to marker array
-  markerArray.markers.push_back(marker);
+  markerArray.markers.emplace_back(marker);
 }
