@@ -8,7 +8,7 @@ RUN apt install -y git \
                    curl \
                    wget \
                    bash-completion \
-                   openssh-client
+                   openssh-client \
                    clang-tools \
                    clang-tidy
 
@@ -29,11 +29,11 @@ RUN apt install -y python3-catkin-tools \
                    ros-$ROS_DISTRO-rviz \
                    ros-$ROS_DISTRO-robot-state-publisher
 
-WORKDIR $HOME/
+WORKDIR $HOME/ackermann
 
 RUN git config --system user.name "Joshua Ra'anan" && \
     git config --system user.email "joshua.raanan@gmail.com" && \
     # This is unsafe outside a docker  container
-    git config --system --add safe.directory /root
+    git config --system --add safe.directory /root/ackermann
 
 CMD ["tail", "-f", "/dev/null"]
