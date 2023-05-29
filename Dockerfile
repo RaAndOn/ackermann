@@ -9,6 +9,8 @@ RUN apt install -y git \
                    wget \
                    bash-completion \
                    openssh-client
+                   clang-tools \
+                   clang-tidy
 
 # Add git tools
 RUN curl https://raw.githubusercontent.com/git/git/master/contrib/completion/git-completion.bash -o ~/.git-completion.bash && \
