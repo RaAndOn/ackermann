@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.10.2)
 project(ackermann_visualization)
 
 ## Compile as C++17
-# add_compile_options(-std=c++17)
+add_compile_options(-std=c++17 -Wpedantic)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
