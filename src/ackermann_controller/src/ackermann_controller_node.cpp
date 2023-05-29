@@ -7,7 +7,7 @@ int main(int argc, char **argv) {
   ros::NodeHandle privateNH("~");
   ros::NodeHandle publicNH("");
 
-  PurePursuit purePursuit(privateNH, publicNH);
+  const PurePursuit purePursuit(privateNH, publicNH);
 
   ros::Rate loop_rate(20);
   ROS_INFO("Init controller node\n");

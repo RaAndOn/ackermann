@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ACKERMANN_GAZEBO_CONTROL_ACKERMANN_CONTROL_PLUGIN_HPP
+#define ACKERMANN_GAZEBO_CONTROL_ACKERMANN_CONTROL_PLUGIN_HPP
 
 #include <geometry_msgs/TwistStamped.h>
 #include <ignition/math/Vector3.hh>
@@ -137,3 +138,5 @@ private:
   double sign(const double num) const;
 };
 } // namespace gazebo
+
+#endif // ACKERMANN_GAZEBO_CONTROL_ACKERMANN_CONTROL_PLUGIN_HPP

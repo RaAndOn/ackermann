@@ -1,18 +1,17 @@
-#pragma once
+#ifndef ACKERMANN_CONTROLLER_PURE_PURSUIT_HPP
+#define ACKERMANN_CONTROLLER_PURE_PURSUIT_HPP
 
 #include <mutex>
 
+#include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <tf2_ros/transform_listener.h>
 
-#include <ackermann_msgs/AckermannPath.h>
-#include <nav_msgs/Odometry.h>
+#include "ackermann_msgs/AckermannPath.h"
 
 class PurePursuit {
 public:
   PurePursuit(ros::NodeHandle &privateNH, ros::NodeHandle &publicNH);
-
-  ~PurePursuit();
 
 private:
   /// @brief Private ROS Node Handle
@@ -44,9 +43,9 @@ private:
   std::vector<ackermann_msgs::AckermannPoseStamped> m_path;
 
   /// @brief Lookahead Distance (meters)
-  double m_lookaheadDistance;
+  double m_lookaheadDistance{};
   /// @brief Velocity of the vehicle
-  double m_velocity;
+  double m_velocity{};
 
   /// @brief Name of the topic which publishes the vehicle state
   std::string m_vehicleOdomTopic;
@@ -72,3 +71,5 @@ private:
   /// @return The index of the closest point to the vehicle
   int findIndexOfClosestPointOnPath();
 };
+
+#endif // ACKERMANN_CONTROLLER_PURE_PURSUIT_HPP

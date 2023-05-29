@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ACKERMANN_PLANNER_MOTION_PRIMITIVE_HPP
+#define ACKERMANN_PLANNER_MOTION_PRIMITIVE_HPP
 
 #include <vector>
 
@@ -17,7 +18,7 @@ class MotionPrimitive {
 public:
   MotionPrimitive(const double wheelBase, const double velocity,
                   const double dt, const double angleDiscretizationDegrees,
-                  const int numberOfPrimitives);
+                  const int numberOfDiscretizations);
 
   ~MotionPrimitive();
 
@@ -49,3 +50,5 @@ private:
   double m_arcLength;
   std::vector<Primitive> m_primitiveVector;
 };
+
+#endif // ACKERMANN_PLANNER_MOTION_PRIMITIVE_HPP

@@ -10,7 +10,7 @@ MotionPrimitive::MotionPrimitive(const double wheelBase, const double velocity,
                                  const int numberOfDiscretizations)
     : m_wheelBase{wheelBase}, m_angleDiscretization{M_PI *
                                                     angleDiscretizationDegrees /
-                                                    180},
+                                                    180.},
       m_arcLength{velocity * dt} {
   // Assume vehicle moves the same speed and distance regardless of steer angle
   ROS_INFO("Velocity: %s", std::to_string(velocity).c_str());
@@ -20,7 +20,7 @@ MotionPrimitive::MotionPrimitive(const double wheelBase, const double velocity,
   /// Set distance resolution for planner as half of a straight forward movement
   m_distanceResolution = m_primitiveVector.back().m_deltaX * .75;
   calculateMotionPrimitive(0, false);
-  m_primitiveVector.push_back(Primitive{0, 0, 0});
+  m_primitiveVector.emplace_back(0, 0, 0);
   for (int i = 1; i <= numberOfDiscretizations; ++i) {
     double steerAngle{m_angleDiscretization / static_cast<double>(i)};
     calculateMotionPrimitive(steerAngle, true);
@@ -35,7 +35,7 @@ MotionPrimitive::MotionPrimitive(const double wheelBase, const double velocity,
   }
 
   ROS_INFO("Angular Resolution (Degrees): %s",
-           std::to_string(m_angularResolution * 180 / M_PI).c_str());
+           std::to_string(m_angularResolution * 180. / M_PI).c_str());
   ROS_INFO("Linear Resolution (Meters): %s",
            std::to_string(m_distanceResolution).c_str());
 }
@@ -108,5 +108,5 @@ void MotionPrimitive::calculateMotionPrimitive(const double steerAngle,
   double deltaY = m_arcLength * std::sin(arcMeasure);
   double deltaTheta = gear * arcMeasure;
 
-  m_primitiveVector.push_back(Primitive{deltaX, deltaY, deltaTheta});
+  m_primitiveVector.emplace_back(deltaX, deltaY, deltaTheta);
 }
