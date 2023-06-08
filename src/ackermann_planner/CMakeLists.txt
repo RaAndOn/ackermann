@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.10.2)
 project(ackermann_planner)
 
 ## Compile as C++17
-add_compile_options(-std=c++17 -Wpedantic)
+add_compile_options(-std=c++17 -Wpedantic -fsanitize=address,undefined)
+add_link_options(-fsanitize=address,undefined)
 
 
 ## Find catkin macros and libraries

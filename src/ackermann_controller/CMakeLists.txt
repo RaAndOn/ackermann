@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.16.3)
 project(ackermann_controller)
 
 ## Compile as C++17
-add_compile_options(-std=c++17 -Wpedantic)
+add_compile_options(-std=c++17 -Wpedantic -fsanitize=address,undefined)
+add_link_options(-fsanitize=address,undefined)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)

@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.16.3)
 project(ackermann_gazebo_control)
 
 ## Compile as C++17
-add_compile_options(-std=c++17 -Wpedantic)
+add_compile_options(-std=c++17 -Wpedantic -fsanitize=address,undefined)
+add_link_options(-fsanitize=address,undefined)
 
 # Load catkin and all dependencies required for this package
 find_package(catkin REQUIRED COMPONENTS
