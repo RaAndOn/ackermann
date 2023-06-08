@@ -1,4 +1,4 @@
-FROM ros:melodic-ros-base
+FROM ros:noetic-ros-base
 
 ENV HOME=/root
 
@@ -20,7 +20,7 @@ RUN curl https://raw.githubusercontent.com/git/git/master/contrib/completion/git
 RUN sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > \
     /etc/apt/sources.list.d/gazebo-stable.list' && \
     wget https://packages.osrfoundation.org/gazebo.key -O - | apt-key add - && \
-    apt update && apt install -y gazebo9 ros-$ROS_DISTRO-gazebo-ros-pkgs ros-$ROS_DISTRO-gazebo-ros-control
+    apt update && apt install -y gazebo11 ros-$ROS_DISTRO-gazebo-ros-pkgs ros-$ROS_DISTRO-gazebo-ros-control
 
 # Install ROS Packages
 RUN apt install -y python3-catkin-tools \
