@@ -1,5 +1,7 @@
 # Overview
 
+![image](./images/ackermann.gif)
+
 This document covers a running explanation of how to use the repo, because my memory is terrible
 
 ## Gazebo_Push_Plugin
